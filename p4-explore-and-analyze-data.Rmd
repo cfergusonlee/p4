@@ -1,0 +1,303 @@
+---
+title: "p4-explore-and-summarize-data-project"
+author: "Courtney Ferguson Lee"
+date: "5/9/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load Libraries
+
+```{r}
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(GGally)
+library(scales)
+library(memisc)
+library(readr)
+library(gridExtra)
+library(RColorBrewer)
+library(bitops)
+library(RCurl)
+library(ggmap)
+library(maptools)
+
+```
+
+## Read Data
+Sources of data:
+
+- Uber: https://github.com/fivethirtyeight/uber-tlc-foil-response
+- ggmap: D. Kahle and H. Wickham. ggmap: Spatial Visualization with ggplot2. The R
+  Journal, 5(1), 144-161. URL
+  http://journal.r-project.org/archive/2013-1/kahle-wickham.pdf
+
+
+```{r}
+setwd('/Users/courtneyfergusonlee/p4')
+uber <- read.csv('uber-raw-data-janjune-15.csv')
+taxi_lookup <- read.csv('taxi-zone-lookup.csv')
+
+citystate = 'new york city new york'
+
+taxi_lookup <- mutate(taxi_lookup, 
+       lat = geocode(paste(Zone, citystate, sep = ', '), output = 'latlon')$lat,
+       lon = geocode(paste(Zone, citystate, sep = ', '), output = 'latlon')$lon)
+taxi_lookup
+names(taxi_lookup)
+taxi_lookup.na <- subset(taxi_lookup, is.na(lon))
+taxi_lookup.na
+
+names(taxi_lookup.na) <- c("LocationID", 
+                           "Borough",    
+                           "Zone",       
+                           "latitude",
+                           "lon")
+names(taxi_lookup.na)
+
+
+
+taxi_lookup.na <- mutate(taxi_lookup.na, 
+       latitude = geocode(paste(Zone, citystate, sep = ', '), output = 'latlon')$lat)
+zone = 'Flatbush/Ditmas Park'
+geocode(paste(zone, citystate, sep = ', '), output = 'latlon')$lat
+str(uber)
+table(uber)
+
+# Grab a sample to lighten system load
+set.seed(420)
+uber_sample <- uber[sample(1:length(uber$locationID), 10000), ]
+str(uber_sample)
+uber_sample <- inner_join(uber_sample, taxi_lookup, by = c('locationID' = 'LocationID'))
+head(uber_sample)
+
+sapply(uber_samp, table)
+dim(uber_sample)
+head(uber_sample)
+table(uber_sample$Borough)
+table(uber_sample$Zone)
+```
+
+
+Goals:
+Done
+- Read uber data
+- Explore structure
+- Get map package (ggmap)
+- Grab sample so your system isn't overloaded
+
+Todo
+- Tidy data
+
+Analyses:
+- Scatter Matrix
+- Can you make a heatmap?
+- 
+
+
+```{r}
+#install.packages('ggmap')
+
+citation('ggmap')
+help(package = 'ggmap')
+lat_lon <- geocode('astoria, new york city new york', output = 'latlon')
+lat_lon$lon
+
+
+nyc <- get_map('Astoria, new york')
+ggmap(nyc, extent = 'normal')
+?ggmap
+```
+
+```{r}
+hdf <- get_map("houston, texas")
+ggmap(hdf, extent = "normal")
+remove.packages('ggmap')
+help(package = 'ggmap')
+library(gg)
+geocodeQueryCheck()
+```
+
+
+```{r}
+install.packages("ggmap", type = "source")
+```
+
+```{r}
+library(ggmap)
+```
+
+
+```{r}
+devtools::install_github("dkahle/ggmap")
+library(ggmap)
+library(gg)
+
+```
+
+1st Try making a heatmap
+
+```{r}
+nyc <- get_map('new york city', zoom = 14)
+nycMap <- ggmap('new york city',
+                extent = 'device',
+                legend = 'topleft')
+
+ggmap('new york city',
+                extent = 'device',
+                legend = 'topleft') +
+  stat_density2d(aes(x = lon,
+                     y = lat,
+                     fill = ..level..,
+                     alpha = ..level..),
+                 size = 2,
+                 bins = 4,
+                 data = uber_sample,
+                 geom = 'polygon')
+?stat_density2d
+```
+
+## Houston Example
+
+```{r}
+?crime
+# only violent crimes
+violent_crimes <- subset(crime,
+                         offense != "auto theft" 
+                         & offense != "theft" 
+                         & offense != "burglary")
+
+# order violent crimes
+violent_crimes$offense <- factor(violent_crimes$offense, 
+                                 levels = c("robbery", "aggravated assault",
+                                            "rape", "murder"))
+# restrict to downtown
+violent_crimes <- subset(violent_crimes,
+                         -95.39681 <= lon & lon <= -95.34188 
+                         & 29.73631 <= lat & lat <= 29.78400)
+
+str(violent_crimes)
+str(crime)
+table(crime$offense)
+
+houston <- get_map("houston, texas", zoom = 14)
+HoustonMap <- ggmap(houston,
+                    extent = "device", 
+                    legend = "bottomright")
+
+HoustonMap +
+  stat_density2d(aes(x = lon, 
+                     y = lat, 
+                     fill = ..level..,
+                     alpha = ..level..),
+                 size = 2, 
+                 bins = 6, 
+                 data = violent_crimes,
+                 geom = "polygon") +
+  scale_fill_continuous(name = 'Violent Crimes') +
+  facet_wrap(~ day)
+?stat_density2d
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+```{r}
+
+```
+
