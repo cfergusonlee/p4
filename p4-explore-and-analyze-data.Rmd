@@ -209,31 +209,80 @@ Analyses:
 
 
 
-## Histograms (Hour, Day, Month, )
+## Histograms (Hour, Day, Month)
 
 ```{r}
 
 # Create hour, day and month variables
 uber_sample <- uber_sample %>%
   mutate(hour = hour(Pickup_date),
-         day = wday(Pickup_date),
-         month = month(Pickup_date))
+         day = wday(Pickup_date, label = T, abbr = F),
+         month = month(Pickup_date, label = T, abbr = F)) %>%
+  filter(Zone != 'Unknown')
+  
+str(uber_sample)
+table(uber_sample$Borough)
+head(uber_sample$Borough)
 
 # Generate simple histograms by hour, day month
 # Use lines for histograms
+
+# Hourly
 ggplot(uber_sample,
        aes(x = hour)) +
   geom_freqpoly(binwidth = 1,
-                 breaks = seq(0,23, 1))
+                color = I('Blue')) +
+  scale_x_continuous(breaks = 0:23) +
+  ylab('Number of Pickups')
 
-?geom_histogram
-# Facet_wrap over borough
+# Daily
+ggplot(uber_sample,
+       aes(x = day)) +
+  geom_bar(aes(fill = day)) +
+  ylab('Number of Pickups') +
+  xlab('Day of the Week') +
+  scale_fill_brewer(type = 'seq')
 
-# 
+# Monthly
+ggplot(uber_sample,
+       aes(x = month)) +
+  geom_bar(aes(fill = month)) +
+  scale_fill_brewer(type = 'seq') +
+  ylab('Number of Pickups')
 
+## Facets
+# Hourly by Day
+ggplot(uber_sample,
+       aes(x = hour)) +
+  geom_freqpoly(binwidth = 1,
+                color = I('Blue')) +
+  scale_x_continuous(breaks = 0:23) +
+  ylab('Number of Pickups') +
+  facet_wrap(~ day)
+
+# Hourly by Borough
+ggplot(uber_sample,
+       aes(x = hour)) +
+  geom_freqpoly(binwidth = 1,
+                aes(color = Borough)) +
+  scale_x_continuous(breaks = 0:23) +
+  scale_color_brewer(type = 'qual', palette = 2) +
+  ylab('Number of Pickups') +
+  facet_wrap(~ Borough)
+
+# Daily by Borough
+ggplot(uber_sample,
+       aes(x = day)) +
+  geom_bar(aes(fill = day)) +
+  ylab('Number of Pickups') +
+  xlab('Day of the Week') +
+  scale_fill_brewer(type = 'seq') +
+  facet_wrap(~ Borough)
 ```
 
 ## Histograms Stretch (Use over Time by: Hour, Day, Month)
+
+
 
 ```{r}
 ?crime
