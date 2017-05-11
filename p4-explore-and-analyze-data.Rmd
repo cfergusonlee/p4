@@ -23,9 +23,16 @@ library(gridExtra)
 library(RColorBrewer)
 library(bitops)
 library(RCurl)
+#devtools::install_github("dkahle/ggmap")
 library(ggmap)
 library(maptools)
-
+library(devtools)
+#install_github("quantide/mapIT")
+#install.packages('choroplethr')
+library(choroplethr)
+#install.packages('choroplethrMaps')
+library(choroplethrMaps)
+library(lubridate)
 ```
 
 ## Read Data
@@ -38,20 +45,24 @@ Sources of data:
 
 
 ```{r}
+# Read csv's and load taxi lookup data
 setwd('/Users/courtneyfergusonlee/p4')
 uber <- read.csv('uber-raw-data-janjune-15.csv')
-taxi_lookup <- read.csv('taxi-zone-lookup.csv')
+load("uber.RData", .GlobalEnv)
+#taxi_lookup <- read.csv('taxi-zone-lookup.csv')
 
+# Get latitude and longitude info for location data
 citystate = 'new york city new york'
-
 taxi_lookup <- mutate(taxi_lookup, 
        lat = geocode(paste(Zone, citystate, sep = ', '), output = 'latlon')$lat,
        lon = geocode(paste(Zone, citystate, sep = ', '), output = 'latlon')$lon)
 taxi_lookup
-names(taxi_lookup)
-taxi_lookup.na <- subset(taxi_lookup, is.na(lon))
+
+# Check for missing latitude or longitude data
+taxi_lookup.na <- subset(taxi_lookup, is.na(lat))
 taxi_lookup.na
 
+# If there's missing data, need to rename variables and replace values as nec.
 names(taxi_lookup.na) <- c("LocationID", 
                            "Borough",    
                            "Zone",       
@@ -59,27 +70,114 @@ names(taxi_lookup.na) <- c("LocationID",
                            "lon")
 names(taxi_lookup.na)
 
-
-
+# Look up missing values in bulk
 taxi_lookup.na <- mutate(taxi_lookup.na, 
-       latitude = geocode(paste(Zone, citystate, sep = ', '), output = 'latlon')$lat)
-zone = 'Flatbush/Ditmas Park'
-geocode(paste(zone, citystate, sep = ', '), output = 'latlon')$lat
-str(uber)
-table(uber)
+       latitude = geocode(paste(Zone, citystate, sep = ', '), 
+                          output = 'latlon')$lat)
 
-# Grab a sample to lighten system load
+# Replace missing values individually and CAREFULLY
+taxi_lookup[249, 4] <- geocode('West Village, new york city new york', 
+                               output = 'latlon')$lat
+taxi_lookup[249, ]
+
+
+# Grab samples to lighten system load
 set.seed(420)
 uber_sample <- uber[sample(1:length(uber$locationID), 10000), ]
-str(uber_sample)
-uber_sample <- inner_join(uber_sample, taxi_lookup, by = c('locationID' = 'LocationID'))
-head(uber_sample)
+uber_bigger_sample <- uber[sample(1:length(uber$locationID), 100000), ]
+uber_biggest_sample <- uber[sample(1:length(uber$locationID), 1000000), ]
 
-sapply(uber_samp, table)
-dim(uber_sample)
+# Join the sample data with location data
+uber_sample <- inner_join(uber_sample, 
+                          taxi_lookup, 
+                          by = c('locationID' = 'LocationID'))
+
+uber <- inner_join(uber, 
+                   taxi_lookup, 
+                   by = c('locationID' = 'LocationID'))
+str(uber_bigger_sample)
 head(uber_sample)
 table(uber_sample$Borough)
 table(uber_sample$Zone)
+(uber$Zone)
+```
+
+# Transform data to get proper densities
+
+This will limit your plots, so planning important. Graph each of the following
+1. Bin the data by location
+2. Bin the data by location + time:
+  - Day
+  - Hour
+  - Month
+
+```{r}
+unique(uber_bigger_sample$Zone)
+unique(taxi_lookup$LocationID)
+taxi_lookup
+
+uber_sample.by_loc <- uber_sample %>%
+  group_by(Zone) %>%
+  summarise(n = n()) %>%
+  inner_join(taxi_copy) %>%
+  print
+
+uber_bigger_sample.by_loc <- uber_bigger_sample %>%
+  group_by(Zone) %>%
+  summarise(n = n()) %>%
+  inner_join(taxi_copy) %>%
+  print
+
+uber.by_loc <- uber %>%
+  group_by(Zone) %>%
+  summarise(n = n()) %>%
+  inner_join(taxi_copy) %>%
+  print
+
+```
+
+
+## 2d Density Plot with Scatter
+
+```{r}
+nyc <- get_map("jackson heights, new york", zoom = 11)
+
+nycMap <- ggmap(nyc,
+                    extent = "device", 
+                    legend = "none")
+
+nycMap +
+  stat_density2d(aes(x = lon, 
+                     y = lat, 
+                     fill = ..level..),
+                 alpha = .2,
+                 bins = 50, 
+                 data = subset(uber_sample, 
+                               Borough != 'Unknown'),
+                 geom = "polygon",
+                 show.legend = F) +
+  scale_fill_gradient2(#"Pickups",
+                       low = "white", 
+                       mid = "yellow", 
+                       high = "red") +
+  geom_point(aes(x = lon,
+                 y = lat,
+                 size = n,
+                 color = n,
+                 alpha = .01),
+             #alpha = .01,
+             data = subset(uber_sample.by_loc, 
+                               Borough != 'Unknown')) +
+  scale_color_gradient2(low = 'yellow',
+                       high = 'red',
+                       mid = 'yellow',
+                       guide = guide_colorbar(barheight = 20,
+                                              title = 'Pickups'),
+                       limits = c(0, 360),
+                       breaks = seq(0, 350, 50)) +
+  scale_size(guide = 'none') +
+  guides(alpha = F)
+
 ```
 
 
@@ -89,79 +187,53 @@ Done
 - Explore structure
 - Get map package (ggmap)
 - Grab sample so your system isn't overloaded
+- Heatmap
 
 Todo
+- Transform data to get proper densities
 - Tidy data
 
 Analyses:
 - Scatter Matrix
-- Can you make a heatmap?
-- 
+- Heatmap by time:
+  - Hour
+  - Day
+  - Month
+- Histogram of times (binned by hour) and number of rides
+  - As a line
+  - Make multi-level by quartile (.25, .5, .99)
+- Histogram of times (binned by hour) and number of rides
+  - facet_wrap by day of week
+- Correlations
+- Add weather data?
 
 
-```{r}
-#install.packages('ggmap')
 
-citation('ggmap')
-help(package = 'ggmap')
-lat_lon <- geocode('astoria, new york city new york', output = 'latlon')
-lat_lon$lon
-
-
-nyc <- get_map('Astoria, new york')
-ggmap(nyc, extent = 'normal')
-?ggmap
-```
+## Histograms (Hour, Day, Month, )
 
 ```{r}
-hdf <- get_map("houston, texas")
-ggmap(hdf, extent = "normal")
-remove.packages('ggmap')
-help(package = 'ggmap')
-library(gg)
-geocodeQueryCheck()
-```
 
+# Create hour, day and month variables
+uber_sample <- uber_sample %>%
+  mutate(hour = hour(Pickup_date),
+         day = wday(Pickup_date),
+         month = month(Pickup_date))
 
-```{r}
-install.packages("ggmap", type = "source")
-```
+# Generate simple histograms by hour, day month
+# Use lines for histograms
+ggplot(uber_sample,
+       aes(x = hour)) +
+  geom_freqpoly(binwidth = 1,
+                 breaks = seq(0,23, 1))
 
-```{r}
-library(ggmap)
-```
+?geom_histogram
+# Facet_wrap over borough
 
-
-```{r}
-devtools::install_github("dkahle/ggmap")
-library(ggmap)
-library(gg)
+# 
 
 ```
 
-1st Try making a heatmap
-
-```{r}
-nyc <- get_map('new york city', zoom = 14)
-nycMap <- ggmap('new york city',
-                extent = 'device',
-                legend = 'topleft')
-
-ggmap('new york city',
-                extent = 'device',
-                legend = 'topleft') +
-  stat_density2d(aes(x = lon,
-                     y = lat,
-                     fill = ..level..,
-                     alpha = ..level..),
-                 size = 2,
-                 bins = 4,
-                 data = uber_sample,
-                 geom = 'polygon')
-?stat_density2d
-```
-
-## Houston Example
+## Histograms Stretch (Use over Time by: Hour, Day, Month)
 
 ```{r}
 ?crime
@@ -205,9 +277,214 @@ HoustonMap +
 
 
 ```{r}
+help(package = 'choroplethr')
+data(county.)
+```
+
+
+```{r}
+
+data(df_pop_county)
+county_choropleth(df_pop_county, 
+                  title  = "US 2012 County Population Estimates", 
+                  legend = "Population")
+```
+
+
+```{r}
+county_choropleth(df_pop_county, 
+                  title         = "New York County Population Estimates", 
+                  legend        = "Population",
+                  state_zoom    = "new york",
+                  reference_map = TRUE)
+```
+
+
+```{r}
+data(county.regions)
+str(county.regions)
+nyc_county_names = c("kings", "bronx", "new york", "queens", "richmond")
+nyc_county_fips = county.regions %>%
+  filter(state.name == "new york" & county.name %in% nyc_county_names) %>%
+  select(region)
+county_choropleth(df_pop_county, 
+                  title        = "Population of Counties in New York City",
+                  legend       = "Population",
+                  num_colors   = 1,
+                  county_zoom = nyc_county_fips$region)
+?select
+```
+
+# Density Map with stat_density2d
+
+```{r}
+nyc <- get_map("jackson heights, new york", zoom = 11)
+?get_map
+nycMap <- ggmap(nyc,
+                    extent = "device", 
+                    legend = "none")
+
+nycMap +
+  stat_density2d(aes(x = lon, 
+                     y = lat, 
+                     fill = ..level..),
+                 alpha = .2,
+                 size = .5, 
+                 bins = 50, 
+                 data = subset(uber_sample, 
+                               Borough != 'Unknown'),
+                 geom = "polygon",
+                 show.legend = F) +
+  scale_fill_gradient2(#"Pickups",
+                       #limits = c(0, 200),
+                       low = "white", 
+                       mid = "yellow", 
+                       high = "red",
+                       guide = 'none') +
+  geom_point(aes(x = lon,
+                 y = lat,
+                 alpha = .05,
+                 color = Borough),
+             data = subset(uber_sample, 
+                               Borough != 'Unknown'))
 
 ```
 
+# Using binned location data
+
+```{r}
+uber.by_loc
+
+nyc <- get_map("jackson heights, new york", zoom = 11)
+nycMap <- ggmap(nyc,
+                    extent = "device")
+
+nycMap +
+  geom_point(data = uber.by_loc,
+             aes(x = lon,
+                 y = lat,
+                 color = n,
+                 size = n/100,
+                 alpha = .1)) +
+  coord_trans
+?stat_density2d
+
+sort(table(uber$Zone))
+```
+
+# Example
+
+```{r}
+set.seed(4393)
+dsmall <- diamonds[sample(nrow(diamonds), 1000), ]
+d <- ggplot(dsmall, aes(x, y))
+# If you map an aesthetic to a categorical variable, you will get a
+# set of contours for each value of that variable
+d + geom_density_2d(aes(colour = cut))
+
+# If we turn contouring off, we can use use geoms like tiles:
+d + stat_density_2d(geom = "raster", aes(fill = ..density..), contour = FALSE)
+# Or points:
+d + stat_density_2d(geom = "point", aes(size = ..density..), n = 20, contour = FALSE)
+```
+
+
+```{r}
+table(uber_sample$Borough)
+```
+
+
+```{r}
+qmplot(lon, lat, data = subset(uber_sample, 
+                               Borough != 'Unknown'), colour = I('red'), size = I(2), darken = .3, zoom = 10) +
+  facet_wrap(~ Borough)
+```
+
+
+```{r}
+ggplot(data = df, aes(x = x, y = y)) +
+  stat_sum(aes(size = factor(..n..)), geom = "point") +
+  scale_size_discrete(range = c(1, 10))
+```
+
+
+```{r}
+taxi_copy <- taxi_lookup
+uber_sample$Pickup_date <- ymd_hms(uber_sample$Pickup_date, tz = "UTC")
+uber_sample$day <- wday(uber_sample$Pickup_date, label = T, abbr = F)
+table(uber_sample$day)
+
+
+
+str(uber_sample)
+head(uber_times)
+str(uber_times)
+?ymd_hms
+help("lubridate")
+```
+
+
+```{r}
+library(ggplot2)
+library(MASS)
+str(geyser)
+gg <- ggplot(geyser, aes(x = duration, y = waiting)) + 
+    geom_point() + 
+    stat_density2d(aes(fill = ..level..), geom = "polygon")
+
+base_plot <- ggplot(geyser, aes(x = duration, y = waiting)) + 
+  geom_point()
+
+base_plot + 
+  stat_density2d(aes(color = ..level..))
+```
+
+
+```{r}
+ggmap(nyc,
+      base_layer = ggplot(uber_sample,
+                          aes(x = lon,
+                              y = lat))) +
+  geom_hex(uber_sample,
+       aes(lon, lat))
+
+```
+
+
+```{r}
+nycMap +
+  coord_cartesian() +
+  stat_binhex(data = subset(uber_sample,
+                        Borough != 'Unknown'),
+                 aes(x = lon,
+                     y = lat,
+                     alpha = .05))
+?stat_density2d
+```
+
+
+
+```{r}
+nycMap +
+  geom_point(data = uber.by_loc,
+            aes(x = lon,
+                y = lat,
+                alpha = .2,
+                size = n,
+                color = n),
+            fill = 'red')
+str(uber.by_loc)
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
 
 ```{r}
 
@@ -223,81 +500,7 @@ HoustonMap +
 
 ```
 
-
 ```{r}
-
-```
-
-
-```{r}
-
-```
-
-
-```{r}
-
-```
-
-
-```{r}
-
-```
-
-
-```{r}
-
-```
-
-
-```{r}
-
-```
-
-
-```{r}
-
-```
-
-
-```{r}
-
-```
-
-
-```{r}
-
-```
-
-
-```{r}
-
-```
-
-
-```{r}
-
-```
-
-
-```{r}
-
-```
-
-```{r}
-
-```
-
-
-```{r}
-
-```
-
-
-```{r}
-
-```
-
-```{r}
-
+save(taxi_lookup, file = file.path('/Users/courtneyfergusonlee/p4/uber.RData'))
 ```
 
