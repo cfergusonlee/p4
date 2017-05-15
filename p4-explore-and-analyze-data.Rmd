@@ -96,11 +96,7 @@ uber_sample <- inner_join(uber_sample,
 uber <- inner_join(uber, 
                    taxi_lookup, 
                    by = c('locationID' = 'LocationID'))
-str(uber_bigger_sample)
-head(uber_sample)
-table(uber_sample$Borough)
-table(uber_sample$Zone)
-(uber$Zone)
+
 ```
 
 # (No longer nec) Transform data to get proper densities
@@ -235,13 +231,27 @@ Done
     - Group by day, then do quartile ()
 - Histogram of times (binned by hour) and number of rides
   - facet_wrap by day of week
+- Analyze:
+  - Analyze month cycles:
+    - Demand ramps up a hell of a lot throughout the month, esp around the 15th
+  - Analyze outliers (April, May and June 100k+)
+    Possible Explanations:
+      - April was normal
+      - May 16: http://www.nyc.gov/html/nypd/html/pr/pr_2015_traffic_2015_05_15.shtml
+      - June 27: http://www.nyc.gov/html/nypd/html/pr/pr_2015_traffic_2015_06_26.shtml
 
 Todo
-- Analyze:
-  - Analyze holidays and patterns around
-  - Analyze outliers (April, May and June 100k+)
-- Need to check Zone and Borough info.  Manhattan has a lot of yellow and 
-need to remove unknowns
+- Fun stuff:
+  - Reorganize all tables and graphs
+  - Check template
+  - Write-up analyses.  Important so far:
+    - Festivals are yuuge
+    - After the 15th, demand seems to ramp up
+    - Pickups pick up over the month
+    - Weekday vs weekend patterns
+
+      
+
 
 
 ## Histograms (Hour, Day, Month)
@@ -374,7 +384,6 @@ ggplot(uber_jan.by_hour,
   scale_x_continuous(breaks = 0:23) +
   scale_color_brewer(type = 'div')
 
-?geom_line
 # This in one color plus 3 quartiles
 ggplot(uber_jan.by_hour,
        aes(x = hour,
@@ -440,6 +449,14 @@ p3 <- ggplot(uber_jan.by_minute,
   geom_line(alpha = .2)
 
 grid.arrange(p1, p2, p3, ncol = 1)
+
+# Make a bar graph of Manhattan Zone pickups
+ggplot(data = subset(uber_jan,
+                     Borough == 'Manhattan'),
+       aes(x = Zone)) +
+  geom_bar()
+
+subset(uber_sample.by_loc, Borough == 'Manhattan' & n < 50)
 ```
 
 ## Patterns over Time
@@ -467,7 +484,72 @@ ggplot(uber_jan,
   facet_wrap(~ date, ncol = 7)
 
 # Look at individual dates:
+# June
+str(uber.by_date)
+ggplot(subset(uber.by_date, month == 'June'),
+       aes(x = date,
+           y = rides)) +
+  geom_col()
+  geom_bar() +
+  scale_color_brewer(type = 'seq') +
+  scale_y_continuous(labels = comma) +
+  ylab('Number of Pickups') +
+  xlab('Date')
 
+# April
+ggplot(subset(uber, 
+              month == 'April'),
+       aes(x = hour)) +
+  geom_freqpoly(binwidth = 1,
+                aes(color = day)) +
+  scale_x_continuous(breaks = 0:23) +
+  scale_color_brewer(type = 'qual', palette = 2) +
+  ggtitle('April Pickups') +
+  ylab('Number of Pickups') +
+  facet_wrap(~ date)
+
+ggplot(uber_jan,
+       aes(x = date)) +
+  geom_histogram(aes(fill = day),
+                 binwidth = 1) +
+  scale_fill_brewer(type = 'seq') +
+  ggtitle('April Pickups') +
+  ylab('Number of Pickups')
+
+# April 25
+str(uber)
+ggplot(subset(uber, 
+              month == 'April'  
+              & date == 13),
+       aes(x = hour)) +
+  geom_freqpoly(binwidth = 1,
+                aes(color = day)) +
+  scale_x_continuous(breaks = 0:23) +
+  scale_color_brewer(type = 'qual', palette = 2) +
+  ggtitle('January 13th Pickups') +
+  ylab('Number of Pickups')
+
+# May 16
+ggplot(subset(uber,
+              Month == 'May',
+              date == 16),
+       aes(x = hour)) +
+  geom_freqpoly(binwidth = 1,
+                aes(color = day)) +
+  scale_x_continuous(breaks = 0:23) +
+  scale_color_brewer(type = 'qual', palette = 2) +
+  ggtitle('January 13th Pickups') +
+  ylab('Number of Pickups')
+
+# June 27
+ggplot(subset(uber_jan, date == 13),
+       aes(x = hour)) +
+  geom_freqpoly(binwidth = 1,
+                aes(color = day)) +
+  scale_x_continuous(breaks = 0:23) +
+  scale_color_brewer(type = 'qual', palette = 2) +
+  ggtitle('January 13th Pickups') +
+  ylab('Number of Pickups')
 # - Tues, Jan 13 (Typical Tuesday)
 ggplot(subset(uber_jan, date == 13),
        aes(x = hour)) +
@@ -530,106 +612,79 @@ uber.by_date <- uber %>%
   group_by(month, date) %>%
   summarise(rides = n())
 
+
+
+# Best so far
 ggplot(aes(y = date, 
-           x = month, 
-           fill = rides),
+           x = month),
        data = uber.by_date) +
-  geom_tile() +
-  scale_fill_gradientn(colours = colorRampPalette(c('blue', 'red'))(100)) +
-  ggtitle('Rides per Date Heatmap')
+  geom_tile(aes(fill = rides)) +
+  scale_fill_gradientn(colours = colorRampPalette(c('blue', 
+                                   'white', 
+                                   'red'))(100),
+                       guide = guide_colorbar(barheight = 20,
+                                              title = 'Pickups')) +
+  ggtitle('Rides per Date Heatmap') +
+  xlab('Month') +
+  ylab('Date') +
 ggsave('rides_per_date_heatmap.png')
 
+#Trying out scale_fill_gradientn
+ggplot(aes(y = date, 
+           x = month),
+       data = uber.by_date) +
+  geom_tile(aes(fill = rides)) +
+  scale_fill_gradientn(colors = colorRampPalette(c(                                                   'blue',
+                                  'aquamarine4',
+                                  "gold",
+                                  'firebrick'))(100),
+                       guide = guide_colorbar(barheight = 20,
+                                              title = 'Pickups')) +
+  ylab('Date') +
+  xlab('Month') +
+  ggtitle('Rides per Date Heatmap')
+
+# Keep going..
+ggplot(aes(y = date, 
+           x = month),
+       data = uber.by_date) +
+  geom_tile(aes(fill = rides)) +
+  scale_fill_gradientn(colors = colorRampPalette(brewer.pal(11, 'RdYlBu'))(100),
+                       guide = guide_colorbar(barheight = 20,
+                                              title = 'Pickups')) +
+  ylab('Date') +
+  xlab('Month') +
+  ggtitle('Rides per Date Heatmap')
+
+ggplot(aes(y = date, 
+           x = month),
+       data = uber.by_date) +
+  geom_tile(aes(fill = rides)) +
+  scale_fill_gradientn(colors = colorRampPalette(brewer.pal(11, 'Spectral'))(100),
+                       guide = guide_colorbar(barheight = 20,
+                                              title = 'Pickups')) +
+  ylab('Date') +
+  xlab('Month') +
+  ggtitle('Rides per Date Heatmap')
+
+ggplot(aes(y = date, 
+           x = month),
+       data = uber.by_date) +
+  geom_tile(aes(fill = rides)) +
+  scale_colour_manual(values = rev(brewer.pal(11,"Spectral")),
+guide = guide_colorbar(barheight = 20,
+                                              title = 'Pickups')) +
+  ylab('Date') +
+  xlab('Month') +
+  ggtitle('Rides per Date Heatmap')
 ```
 
-
-## Houstong Crime Map Practice
-
-```{r}
-?crime
-# only violent crimes
-violent_crimes <- subset(crime,
-                         offense != "auto theft" 
-                         & offense != "theft" 
-                         & offense != "burglary")
-
-# order violent crimes
-violent_crimes$offense <- factor(violent_crimes$offense, 
-                                 levels = c("robbery", "aggravated assault",
-                                            "rape", "murder"))
-# restrict to downtown
-violent_crimes <- subset(violent_crimes,
-                         -95.39681 <= lon & lon <= -95.34188 
-                         & 29.73631 <= lat & lat <= 29.78400)
-
-str(violent_crimes)
-str(crime)
-table(crime$offense)
-
-houston <- get_map("houston, texas", zoom = 14)
-HoustonMap <- ggmap(houston,
-                    extent = "device", 
-                    legend = "bottomright")
-
-HoustonMap +
-  stat_density2d(aes(x = lon, 
-                     y = lat, 
-                     fill = ..level..,
-                     alpha = ..level..),
-                 size = 2, 
-                 bins = 6, 
-                 data = violent_crimes,
-                 geom = "polygon") +
-  scale_fill_continuous(name = 'Violent Crimes') +
-  guides(alpha = F) +
-  facet_wrap(~ day)
-?stat_density2d
-```
-
-
-```{r}
-help(package = 'choroplethr')
-data(county.)
-```
-
-
-```{r}
-
-data(df_pop_county)
-county_choropleth(df_pop_county, 
-                  title  = "US 2012 County Population Estimates", 
-                  legend = "Population")
-```
-
-
-```{r}
-county_choropleth(df_pop_county, 
-                  title         = "New York County Population Estimates", 
-                  legend        = "Population",
-                  state_zoom    = "new york",
-                  reference_map = TRUE)
-```
-
-
-```{r}
-data(county.regions)
-str(county.regions)
-nyc_county_names = c("kings", "bronx", "new york", "queens", "richmond")
-nyc_county_fips = county.regions %>%
-  filter(state.name == "new york" & county.name %in% nyc_county_names) %>%
-  select(region)
-county_choropleth(df_pop_county, 
-                  title        = "Population of Counties in New York City",
-                  legend       = "Population",
-                  num_colors   = 1,
-                  county_zoom = nyc_county_fips$region)
-?select
-```
 
 # Density Map with stat_density2d
 
 ```{r}
 nyc <- get_map("jackson heights, new york", zoom = 11)
-?get_map
+
 nycMap <- ggmap(nyc,
                     extent = "device", 
                     legend = "none")
@@ -677,56 +732,12 @@ nycMap +
                  size = n/100,
                  alpha = .1)) +
   coord_trans
-?stat_density2d
-
-sort(table(uber$Zone))
-```
-
-# Example
-
-```{r}
-set.seed(4393)
-dsmall <- diamonds[sample(nrow(diamonds), 1000), ]
-d <- ggplot(dsmall, aes(x, y))
-# If you map an aesthetic to a categorical variable, you will get a
-# set of contours for each value of that variable
-d + geom_density_2d(aes(colour = cut))
-
-# If we turn contouring off, we can use use geoms like tiles:
-d + stat_density_2d(geom = "raster", aes(fill = ..density..), contour = FALSE)
-# Or points:
-d + stat_density_2d(geom = "point", aes(size = ..density..), n = 20, contour = FALSE)
-```
-
-
-
-```{r}
-library(ggplot2)
-library(MASS)
-str(geyser)
-gg <- ggplot(geyser, aes(x = duration, y = waiting)) + 
-    geom_point() + 
-    stat_density2d(aes(fill = ..level..), geom = "polygon")
-
-base_plot <- ggplot(geyser, aes(x = duration, y = waiting)) + 
-  geom_point()
-
-base_plot + 
-  stat_density2d(aes(color = ..level..))
-```
-
-
-```{r}
-ggmap(nyc,
-      base_layer = ggplot(uber_sample,
-                          aes(x = lon,
-                              y = lat))) +
-  geom_hex(uber_sample,
-       aes(lon, lat))
 
 ```
 
-# Experiments:
+
+
+# Experiments Sections:
 - Consider turning map scatterplot into map hexplot
 
 ```{r}
@@ -738,6 +749,26 @@ nycMap +
                      y = lat,
                      alpha = .05))
 ?stat_density2d
+```
+
+
+```{r}
+data(county.regions)
+str(county.regions)
+nyc_county_names = c("kings", 
+                     "bronx", 
+                     "new york", 
+                     "queens", 
+                     "richmond")
+nyc_county_fips = county.regions %>%
+  filter(state.name == "new york" & county.name %in% nyc_county_names) %>%
+  select(region)
+county_choropleth(df_pop_county, 
+                  title        = "Population of Counties in New York City",
+                  legend       = "Population",
+                  num_colors   = 1,
+                  county_zoom = nyc_county_fips$region)
+
 ```
 
 
