@@ -1,5 +1,5 @@
 ---
-title: "p4-explore-and-summarize-data-project"
+title: "Exploratory Data Analysis of Uber Pickup Data"
 author: "Courtney Ferguson Lee"
 date: "5/9/2017"
 output: html_document
@@ -9,9 +9,9 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Load Libraries
 
-```{r}
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, packages}
 library(ggplot2)
 library(tidyr)
 library(dplyr)
@@ -28,129 +28,244 @@ library(ggmap)
 library(maptools)
 library(devtools)
 #install_github("quantide/mapIT")
-#install.packages('choroplethr')
-library(choroplethr)
-#install.packages('choroplethrMaps')
-library(choroplethrMaps)
 library(lubridate)
 ```
 
-## Read Data
-Sources of data:
-
-- Uber: https://github.com/fivethirtyeight/uber-tlc-foil-response
-- ggmap: D. Kahle and H. Wickham. ggmap: Spatial Visualization with ggplot2. The
-R Journal, 5(1), 144-161. URL
-  http://journal.r-project.org/archive/2013-1/kahle-wickham.pdf
 
 
-```{r}
+```{r echo=FALSE, Load_the_Data}
+
 # Read csv's and load taxi lookup data
 setwd('/Users/courtneyfergusonlee/p4')
 uber <- read.csv('uber-raw-data-janjune-15.csv')
-load("uber.RData", .GlobalEnv)
-#taxi_lookup <- read.csv('taxi-zone-lookup.csv')
+taxi_lookup <- read.csv('taxi-zone-lookup.csv')
 
-# Get latitude and longitude info for location data
+# May not need this if making this reproducible
+#load("uber.RData", .GlobalEnv)
+
+# Get latitude and longitude info for location data (Long Process)
 citystate = 'new york city new york'
 taxi_lookup <- mutate(taxi_lookup, 
        lat = geocode(paste(Zone, citystate, sep = ', '), output = 'latlon')$lat,
        lon = geocode(paste(Zone, citystate, sep = ', '), output = 'latlon')$lon)
-taxi_lookup
 
 # Check for missing latitude or longitude data
-taxi_lookup.na <- subset(taxi_lookup, is.na(lat))
-taxi_lookup.na
+taxi_lookup.lat_na <- subset(taxi_lookup, is.na(lat))
+taxi_lookup.lon_na <- subset(taxi_lookup, is.na(lon))
+taxi_lookup.lat_na
+taxi_lookup.lon_na
 
 # If there's missing data, need to rename variables and replace values as nec.
-names(taxi_lookup.na) <- c("LocationID", 
+names(taxi_lookup.lat_na) <- c("LocationID", 
                            "Borough",    
                            "Zone",       
                            "latitude",
-                           "lon")
-names(taxi_lookup.na)
+                           "longitude")
+names(taxi_lookup.lon_na) <- c("LocationID", 
+                           "Borough",    
+                           "Zone",       
+                           "latitude",
+                           "longitude")
 
-# Look up missing values in bulk
-taxi_lookup.na <- mutate(taxi_lookup.na, 
+# Lookup missing values in bulk, check for warnings
+taxi_lookup.lat_na <- mutate(taxi_lookup.lat_na, 
        latitude = geocode(paste(Zone, citystate, sep = ', '), 
                           output = 'latlon')$lat)
+taxi_lookup.lon_na <- mutate(taxi_lookup.lon_na, 
+       longitude = geocode(paste(Zone, citystate, sep = ', '), 
+                          output = 'latlon')$lon)
 
-# Replace missing values individually and CAREFULLY
-taxi_lookup[249, 4] <- geocode('West Village, new york city new york', 
-                               output = 'latlon')$lat
-taxi_lookup[249, ]
-
-
-# Grab samples to lighten system load
-set.seed(420)
-uber_sample <- uber[sample(1:length(uber$locationID), 10000), ]
-uber_first_stack <- uber[1:10000, ]
-uber_bigger_sample <- uber[sample(1:length(uber$locationID), 100000), ]
-uber_biggest_sample <- uber[sample(1:length(uber$locationID), 1000000), ]
-
-# Join the sample data with location data
-uber_sample <- inner_join(uber_sample, 
-                          taxi_lookup, 
-                          by = c('locationID' = 'LocationID'))
-
-uber <- inner_join(uber, 
-                   taxi_lookup, 
-                   by = c('locationID' = 'LocationID'))
+# Replace missing values CAREFULLY (Lookup is a long process)
+taxi_lookup[taxi_lookup.lat_na$LocationID, 4] <- taxi_lookup.lat_na$latitude
+taxi_lookup[taxi_lookup.lon_na$LocationID, 5] <- taxi_lookup.lon_na$longitude
 
 ```
 
-# (No longer nec) Transform data to get proper densities
 
-This will limit your plots, so planning important. Graph each of the following
-1. Bin the data by location
-2. Bin the data by location + time:
-  - Day
-  - Hour
-  - Month
 
-```{r}
+```{r echo=FALSE, Sample_the_Data}
 
-uber_sample.by_loc <- uber_sample %>%
-  group_by(Zone) %>%
-  summarise(n = n()) %>%
-  inner_join(taxi_copy) %>%
-  print
+# Grab samples to lighten system load and run tests
+set.seed(420)
+uber_sample <- uber[sample(1:length(uber$locationID), 100000), ]
 
-uber_jan.by_loc <- uber_jan %>%
-  group_by(Zone) %>%
+# Create Zone, Borough, lat, lon, hour, day, month and date variables
+uber_sample <- uber_sample %>%
+  inner_join(taxi_lookup, 
+             by = c('locationID' = 'LocationID')) %>%
+  filter(Zone != 'Unknown' & Zone != 'EWR') %>% # EWR is NJ
+  mutate(hour = hour(Pickup_date),
+         day = wday(Pickup_date, label = T, abbr = F),
+         month = month(Pickup_date, label = T, abbr = F),
+         date = day(Pickup_date))
+
+```
+
+
+
+```{r echo=FALSE, Format_the_Data}
+
+# Create Zone, Borough, lat, lon, hour, day, month and date variables
+uber <- uber %>%
+  inner_join(taxi_lookup, 
+             by = c('locationID' = 'LocationID')) %>%
+  filter(Zone != 'Unknown' & Zone != 'EWR') %>% # EWR is NJ
+  mutate(hour = hour(Pickup_date),
+         day = wday(Pickup_date, label = T, abbr = F),
+         month = month(Pickup_date, label = T, abbr = F),
+         date = day(Pickup_date))
+
+# Create month tables for quicker execution
+uber_jan <- uber %>%
+  filter(month == 'January')
+uber_feb <- uber %>%
+  filter(month == 'February')
+uber_mar <- uber %>%
+  filter(month == 'March')
+uber_apr <- uber %>%
+  filter(month == 'April')
+uber_may <- uber %>%
+  filter(month == 'May')
+uber_jun <- uber %>%
+  filter(month == 'June')
+
+# Bin rides by minute, turning rides into a variable (Do it just)
+uber_jan.by_minute <- uber_jan %>%
+  mutate(minute = minute(Pickup_date), hour_plus_minute = hour + minute/60) %>%
+  group_by(hour_plus_minute) %>%
   summarise(rides = n()) %>%
-  inner_join(taxi_copy) %>%
-  print
+  ungroup()
 
-uber_bigger_sample.by_loc <- uber_bigger_sample %>%
-  group_by(Zone) %>%
-  summarise(n = n()) %>%
-  inner_join(taxi_copy) %>%
-  print
+# Bin rides by hour, turning rides into a variable.  Need to keep other 
+# variables, too
+uber_jan.by_hour <- uber_jan %>%
+  group_by(date, hour, day) %>%
+  summarise(rides = n()) %>%
+  ungroup()
 
+uber.by_hour <- uber %>%
+  group_by(month, date, hour, day) %>%
+  summarise(rides = n()) %>%
+  ungroup()
+
+# Group number of rides by date
+uber.by_date <- uber %>%
+  group_by(month, date) %>%
+  summarise(rides = n())
+
+# Bin by location for map scatter plot
 uber.by_loc <- uber %>%
   group_by(Zone) %>%
-  summarise(n = n()) %>%
-  inner_join(taxi_copy) %>%
-  print
+  summarise(rides = n()) %>%
+  inner_join(taxi_lookup) %>%
+  ungroup()
+
 
 ```
 
 
-## 2d Density Plot of New York Pickups with Scatterplot Layer
+# Univariate Plots Section
 
-Consider getting rid of the density plot.  It doesn't really add much, takes a 
-long time to render and seems to break for large sample sizes.  The scatterplot 
-seems to be doing a good job of summarizing the data.  It gives actual data 
-(real pickup numbers) and can be tweaked if nec. 
+```{r echo=FALSE, Hourly_Pickups}
+ggplot(uber,
+       aes(x = hour)) +
+  geom_freqpoly(binwidth = 1,
+                color = I('Blue')) +
+  scale_x_continuous(breaks = 0:23) +
+  ggtitle('Frequency Polygon of Pickups per Hour') +
+  xlab('Hour') +
+  ylab('Number of Pickups')
+```
 
-```{r}
-nyc <- get_map("jackson heights, new york", zoom = 11)
+
+
+
+```{r echo=FALSE, Daily_Pickups}
+ggplot(uber,
+       aes(x = day)) +
+  geom_bar(aes(fill = day)) +
+  ggtitle('Number of Pickups per Day') +
+  ylab('Number of Pickups') +
+  xlab('Day of the Week') +
+  labs(fill = 'Day') +
+  scale_fill_brewer(type = 'seq') +
+  ggsave('pickups_per_day_bar.png')
+```
+
+
+
+```{r echo=FALSE, Monthly Pickups}
+# Bar graph of rides per month
+ggplot(uber,
+       aes(x = month)) +
+  geom_bar(aes(fill = month)) +
+  scale_y_continuous(labels = comma) +
+  scale_fill_brewer(type = 'seq') +
+  xlab('Month') +
+  ylab('Number of Pickups') +
+  guides(guide_legend(title = 'Month'))
+
+# Boxplot of rides per month
+ggplot(uber.by_date,
+       aes(x = month,
+           y = rides)) +
+  geom_boxplot(aes(color = month)) +
+  scale_color_brewer(type = 'qual',
+                     palette = 2) +
+  scale_y_continuous(labels = comma) +
+  ylab('Number of Pickups') +
+  xlab('Month')
+```
+
+
+
+
+
+```{r echo=FALSE, Hourly_Pickups}
+
+```
+
+
+# Univariate Analysis
+
+## 
+
+### What is the structure of your dataset?
+
+### What is/are the main feature(s) of interest in your dataset?
+
+### What other features in the dataset do you think will help support your \
+investigation into your feature(s) of interest?
+
+### Did you create any new variables from existing variables in the dataset?
+
+### Of the features you investigated, were there any unusual distributions? \
+Did you perform any operations on the data to tidy, adjust, or change the form \
+of the data? If so, why did you do this?
+
+
+
+# Multivariate Plots Section
+
+## Map Scatter Plot
+
+```{r echo=FALSE Map_Scatter_Plot}
+# Map Scatterplot of New York Pickups
+# Create bounding box
+lon_left <- min(taxi_lookup$lon)
+lon_right <- max(taxi_lookup$lon)
+lat_bottom <- min(taxi_lookup$lat)
+lat_top <- max(taxi_lookup$lat)
+
+nyc <- get_map(location = c(lon_left, 
+                            lat_bottom,
+                            lon_right,
+                            lat_top), 
+               source = 'stamen')
 
 nycMap <- ggmap(nyc,
-                    extent = "device", 
-                    legend = "none")
-# Without density plot (Focus on this.  Extract as much info as possible)
+                    extent = "panel")
+
 nycMap +
   geom_point(aes(x = lon,
                  y = lat,
@@ -158,50 +273,17 @@ nycMap +
                  color = rides,
                  alpha = .01),
              #alpha = .01,
-             data = subset(uber_jan.by_loc, 
-                               Borough != 'Unknown')) +
+             data = uber.by_loc) +
   scale_color_gradient2(low = 'yellow',
                        high = 'red',
                        mid = 'yellow',
+                       labels = comma,
                        guide = guide_colorbar(barheight = 20,
                                               title = 'Pickups')) +
-  ggtitle('January Pickups Scatterplot Map')
+  ggtitle('Uber Pickups Scatterplot Map') +
   scale_size(guide = 'none') +
-  guides(alpha = F)
-
-
-# With density plot (no longer used)
-nycMap +
-  stat_density2d(aes(x = lon, 
-                     y = lat, 
-                     fill = ..level..),
-                 alpha = .2,
-                 bins = 10, 
-                 data = subset(uber_sample, 
-                               Borough != 'Unknown'),
-                 geom = "polygon",
-                 show.legend = F) +
-  scale_fill_gradient2(#"Pickups",
-                       low = "white", 
-                       mid = "yellow", 
-                       high = "red",
-                       limits = c(0, 360),
-                       breaks = seq(0, 350, 50)) +
-  geom_point(aes(x = lon,
-                 y = lat,
-                 size = n,
-                 color = n,
-                 alpha = .01),
-             #alpha = .01,
-             data = subset(uber_sample.by_loc, 
-                               Borough != 'Unknown')) +
-  scale_color_gradient2(low = 'yellow',
-                       high = 'red',
-                       mid = 'yellow',
-                       guide = guide_colorbar(barheight = 20,
-                                              title = 'Pickups')) +
-  scale_size(guide = 'none') +
-  guides(alpha = F)
+  guides(alpha = F) +
+  ggsave('scatterplot_map.png')
 
 ```
 
@@ -254,70 +336,10 @@ Todo
 
 
 
-## Histograms (Hour, Day, Month)
+## Simple Graphs
 
 ```{r}
 
-# Create hour, day and month variables
-# Note: Don't need to run for samples anymore because 
-# it's in the full uber dataset now
-
-uber <- uber %>%
-  mutate(hour = hour(Pickup_date),
-         day = wday(Pickup_date, label = T, abbr = F),
-         month = month(Pickup_date, label = T, abbr = F),
-         date = day(Pickup_date))
-
-uber_sample <- uber_sample %>%
-  mutate(hour = hour(Pickup_date),
-         day = wday(Pickup_date, label = T, abbr = F),
-         month = month(Pickup_date, label = T, abbr = F)) %>%
-  filter(Zone != 'Unknown')
-  
-str(uber_sample)
-table(uber_sample$Borough)
-head(uber_sample$Borough)
-
-# Generate simple graphs by hour, day month
-# Use lines for histograms
-
-# Hourly
-ggplot(uber_sample,
-       aes(x = hour)) +
-  geom_freqpoly(binwidth = 1,
-                color = I('Blue')) +
-  scale_x_continuous(breaks = 0:23) +
-  ylab('Number of Pickups')
-
-# Daily
-ggplot(uber_sample,
-       aes(x = day)) +
-  geom_bar(aes(fill = day)) +
-  ylab('Number of Pickups') +
-  xlab('Day of the Week') +
-  scale_fill_brewer(type = 'seq')
-
-# Monthly
-# Bar graph of rides per month
-ggplot(uber,
-       aes(x = month)) +
-  geom_bar(aes(fill = month)) +
-  scale_y_continuous(labels = comma) +
-  scale_fill_brewer(type = 'seq') +
-  xlab('Month') +
-  ylab('Number of Pickups') +
-  guides(guide_legend(title = 'Month'))
-
-# Boxplot of rides per month
-ggplot(uber.by_date,
-       aes(x = month,
-           y = rides)) +
-  geom_boxplot(aes(color = month)) +
-  scale_color_brewer(type = 'qual',
-                     palette = 2) +
-  scale_y_continuous(labels = comma) +
-  ylab('Number of Pickups') +
-  xlab('Month')
 
 
 
@@ -450,13 +472,13 @@ p3 <- ggplot(uber_jan.by_minute,
 
 grid.arrange(p1, p2, p3, ncol = 1)
 
-# Make a bar graph of Manhattan Zone pickups
+# Make a histogram! of Manhattan Zone pickups
 ggplot(data = subset(uber_jan,
                      Borough == 'Manhattan'),
        aes(x = Zone)) +
-  geom_bar()
+  geom_histogram()
 
-subset(uber_sample.by_loc, Borough == 'Manhattan' & n < 50)
+
 ```
 
 ## Patterns over Time
@@ -466,11 +488,7 @@ Over days (dates), make another frequency polygon
 
 ```{r}
 
-# Create month sample (January) and date variable
-# Filter out unknown and EWR borough
-uber_jan <- uber %>%
-  filter(month == 'January' & Borough != 'Unknown' & Borough != 'EWR') %>%
-  mutate(date = day(Pickup_date))
+
 
 # Create histogram of pickups, faceted by date (ncol = 7)
 ggplot(uber_jan,
@@ -485,7 +503,6 @@ ggplot(uber_jan,
 
 # Look at individual dates:
 # June
-str(uber.by_date)
 ggplot(subset(uber.by_date, month == 'June'),
        aes(x = date,
            y = rides)) +
@@ -517,7 +534,6 @@ ggplot(uber_jan,
   ylab('Number of Pickups')
 
 # April 25
-str(uber)
 ggplot(subset(uber, 
               month == 'April'  
               & date == 13),
@@ -572,24 +588,7 @@ ggplot(subset(uber_jan, date == 31),
   ylab('Number of Pickups')
 ggsave('jan_31_pickups.png')
 
-# Bin rides by minute, turning rides into a variable (Do it just)
-uber_jan.by_minute <- uber_jan %>%
-  mutate(minute = minute(Pickup_date), hour_plus_minute = hour + minute/60) %>%
-  group_by(hour_plus_minute) %>%
-  summarise(rides = n()) %>%
-  ungroup()
 
-# Bin rides by hour, turning rides into a variable.  Need to keep other 
-# variables, too
-uber_jan.by_hour <- uber_jan %>%
-  group_by(date, hour, day) %>%
-  summarise(rides = n()) %>%
-  ungroup()
-
-uber.by_hour <- uber %>%
-  group_by(month, date, hour, day) %>%
-  summarise(rides = n()) %>%
-  ungroup()
 
 # Testing corellation by hour and date
 with(uber.by_hour, cor.test(hour, rides))
@@ -607,10 +606,6 @@ ggplot(uber_jan,
 ggsave('january_pickups_by_date.png')
 
 # Heatmap by month and date
-# Group number of rides by date
-uber.by_date <- uber %>%
-  group_by(month, date) %>%
-  summarise(rides = n())
 
 
 
@@ -718,7 +713,6 @@ nycMap +
 # Using binned location data
 
 ```{r}
-uber.by_loc
 
 nyc <- get_map("jackson heights, new york", zoom = 11)
 nycMap <- ggmap(nyc,
@@ -753,26 +747,85 @@ nycMap +
 
 
 ```{r}
-data(county.regions)
-str(county.regions)
-nyc_county_names = c("kings", 
-                     "bronx", 
-                     "new york", 
-                     "queens", 
-                     "richmond")
-nyc_county_fips = county.regions %>%
-  filter(state.name == "new york" & county.name %in% nyc_county_names) %>%
-  select(region)
-county_choropleth(df_pop_county, 
-                  title        = "Population of Counties in New York City",
-                  legend       = "Population",
-                  num_colors   = 1,
-                  county_zoom = nyc_county_fips$region)
+# NYC Map Scatter plot with density plot (no longer used)
+nycMap +
+  stat_density2d(aes(x = lon, 
+                     y = lat, 
+                     fill = ..level..),
+                 alpha = .2,
+                 bins = 10, 
+                 data = subset(uber_sample, 
+                               Borough != 'Unknown'),
+                 geom = "polygon",
+                 show.legend = F) +
+  scale_fill_gradient2(#"Pickups",
+                       low = "white", 
+                       mid = "yellow", 
+                       high = "red",
+                       limits = c(0, 360),
+                       breaks = seq(0, 350, 50)) +
+  geom_point(aes(x = lon,
+                 y = lat,
+                 size = n,
+                 color = n,
+                 alpha = .01),
+             #alpha = .01,
+             data = subset(uber_sample.by_loc, 
+                               Borough != 'Unknown')) +
+  scale_color_gradient2(low = 'yellow',
+                       high = 'red',
+                       mid = 'yellow',
+                       guide = guide_colorbar(barheight = 20,
+                                              title = 'Pickups')) +
+  scale_size(guide = 'none') +
+  guides(alpha = F)
+
+```
+
+# (No longer nec) Transform data to get proper densities
+
+This will limit your plots, so planning important. Graph each of the following
+1. Bin the data by location
+2. Bin the data by location + time:
+  - Day
+  - Hour
+  - Month
+
+```{r}
+
+uber_sample.by_loc <- uber_sample %>%
+  group_by(Zone) %>%
+  summarise(n = n()) %>%
+  inner_join(taxi_copy) %>%
+  print
+
+uber_jan.by_loc <- uber_jan %>%
+  group_by(Zone) %>%
+  summarise(rides = n()) %>%
+  inner_join(taxi_copy) %>%
+  print
+
+uber_bigger_sample.by_loc <- uber_bigger_sample %>%
+  group_by(Zone) %>%
+  summarise(n = n()) %>%
+  inner_join(taxi_copy) %>%
+  print
+
+
 
 ```
 
 
+# Sources of data:
+
+1. Uber: https://github.com/fivethirtyeight/uber-tlc-foil-response
+2. ggmap: D. Kahle and H. Wickham. ggmap: Spatial Visualization with ggplot2. 
+The R Journal, 5(1), 144-161. URL
+  http://journal.r-project.org/archive/2013-1/kahle-wickham.pdf
+
 ```{r}
-save(taxi_lookup, uber, file = file.path('/Users/courtneyfergusonlee/p4/uber.RData'))
+save(taxi_lookup, 
+     uber, 
+     file = file.path('/Users/courtneyfergusonlee/p4/uber.RData'))
 ```
 
