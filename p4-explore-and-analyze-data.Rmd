@@ -136,7 +136,7 @@ uber_may <- uber %>%
 uber_jun <- uber %>%
   filter(month == 'June')
 
-# Bin by quarter hour, half hour and hour, turning rides into a variable
+# Bin by quarter hour, half hour, hour and day, turning rides into a variable
 uber.by_quarter_hour <- uber %>%
   mutate(minute = minute(Pickup_date),
          quarter_hour = floor(minute/15) * 15,
@@ -169,6 +169,14 @@ uber.by_hour <- uber %>%
   summarise(rides = n()) %>%
   ungroup()
 
+uber.by_day <- uber %>%
+  group_by(month, 
+           date, 
+           day) %>%
+  summarise(rides = n()) %>%
+  ungroup()
+
+
 # Bin by location for map scatter plot
 uber_known.by_loc <- uber_known %>%
   group_by(Zone) %>%
@@ -199,7 +207,7 @@ ggplot(uber,
   geom_freqpoly(binwidth = 1,
                 color = I('Blue')) +
   scale_x_continuous(breaks = 0:23) +
-  ggtitle('Frequency Polygon of Pickups per Hour') +
+  ggtitle('Pickups per Hour') +
   xlab('Hour') +
   ylab('Number of Pickups')
 ```
@@ -208,44 +216,56 @@ ggplot(uber,
 ## Daily Pickups
 
 ```{r echo=FALSE, Daily_Pickups}
-
-ggplot(uber.by_time,
+ggplot(uber.by_day,
        aes(x = day,
            y = rides)) +
   geom_boxplot(aes(color = day)) +
   scale_color_brewer(type = 'qual',
                      palette = 2) +
-  scale_y_continuous(labels = comma) +
+  scale_y_continuous(labels = comma,
+                     breaks = seq(0, 150000, 25000)) +
   ggtitle('Boxplot of Rides per Day') +
+  labs(color = 'Day') +
   xlab('Day of the Week') +
   ylab('Number of Pickups') +
   ggsave('pickups_per_day_boxplot.png')
 ```
 
-# Monthly Pickups
+## Monthly Pickups
 
 ```{r echo=FALSE, Monthly Pickups}
 
-ggplot(uber.by_hour,
-       aes(x = month,
-           y = rides)) +
-  geom_boxplot(aes(color = month)) +
-  scale_color_brewer(type = 'qual',
-                     palette = 2) +
+ggplot(uber,
+       aes(x = month)) +
+  geom_bar(aes(fill = month)) +
+  scale_fill_brewer(type = 'seq',
+                     palette = 1,
+                    direction = 1) +
   scale_y_continuous(labels = comma) +
   ggtitle('Rides per Month') +
+  labs(fill = 'Month') +
   ylab('Number of Pickups') +
   xlab('Month') +
-  ggsave('pickups_per_month_boxplot.png')
+  ggsave('pickups_per_month_barplot.png')
 
 
 ```
 
+## Pickups by Borough
 
-
-
-
-```{r echo=FALSE, Hourly_Pickups}
+```{r echo=FALSE, Borough_Pickups}
+# Boxplot of pickups by Borough
+ggplot(uber_known.by_loc,
+       aes(x = Borough,
+           y = rides)) +
+  geom_boxplot(aes(color = Borough)) +
+  scale_y_log10(labels = comma,
+                breaks = c(100, 1000, 10000, 100000, 500000)) +
+  scale_color_brewer(type = 'qual',
+                     palette = 6) +
+  ggtitle('Pickups by Location') +
+  ylab('Number of Pickups') +
+  ggsave('pickups_by_location_boxplot.png')
 
 ```
 
@@ -270,142 +290,220 @@ of the data? If so, why did you do this?
 
 
 
-Goals:
-Done
-- Read uber data
-- Explore structure
-- Get map package (ggmap)
-- Grab sample so your system isn't overloaded
-- Month by month graphs:
-  - Bar graph
-  - Freq polygon
-  - Box plot
-- Make a heatmap for each month
-  - Rides by date by month
-- Correlation for # rides by:
-  - Hour
-  - Date
-- Heatmap by time:
-  - Hour
-  - Day
-  - Month
-- Histogram of times (binned by hour) and number of rides
-  - As a line
-  - Make multi-level by quartile (.25, .5, .99)
-    - Group by day, then do quartile ()
-- Histogram of times (binned by hour) and number of rides
-  - facet_wrap by day of week
-- Analyze:
-  - Analyze month cycles:
-    - Demand ramps up a hell of a lot throughout the month, esp around the 15th
-  - Analyze outliers (April, May and June 100k+)
-    Possible Explanations:
-      - April was normal
-      - May 16: http://www.nyc.gov/html/nypd/html/pr/pr_2015_traffic_2015_05_15.shtml
-      - June 27: http://www.nyc.gov/html/nypd/html/pr/pr_2015_traffic_2015_06_26.shtml
-
-Todo
-- Fun stuff:
-  - Reorganize all tables and graphs
-  - Check template
-  - Write-up analyses.  Important so far:
-    - Festivals are yuuge
-    - After the 15th, demand seems to ramp up
-    - Pickups pick up over the month
-    - Weekday vs weekend patterns
-
-      
-
 # Bivariate Plots
 
-```{r}
-## Facets
+## Hourly Pickups
+
+```{r echo=FALSE, Hourly_by_Day}
+
 # Hourly by Day
 ggplot(uber,
        aes(x = hour)) +
-  geom_density(binwidth = 1,
-                aes(fill = day)) +
+  geom_histogram(binwidth = 1,
+                aes(color = day)) +
   scale_x_continuous(breaks = seq(0,24,6)) +
-  scale_color_brewer(type = 'qual', palette = 2) +
+  scale_color_brewer(type = 'qual', palette = 1) +
   ggtitle('Hourly Pickups by Day') +
+  labs(color = 'Day') +
+  xlab('Hour') +
   ylab('Number of Pickups') +
   facet_wrap(~ day) +
   ggsave('hourly_pickups_by_day_density.png')
 
+```
 
-# Hourly by Borough
-ggplot(uber_known,
-       aes(x = hour)) +
-  geom_freqpoly(binwidth = 1,
-                aes(color = Borough)) +
-  scale_x_continuous(breaks = seq(0,24,6)) +
-  scale_color_brewer(type = 'qual', palette = 2) +
-  ggtitle('Number of Pickups by Hour and Borough') +
+
+
+## Rides over Time
+
+```{r echo=FALSE, Rides_Over_Time}
+# Number of Rides over time Colored by Day
+ggplot(uber,
+       aes(x = date)) +
+  geom_histogram(binwidth = 1,
+                aes(fill = day)) +
+  scale_x_continuous(breaks = seq(7, 28, 7)) +
+  scale_y_continuous(labels = comma) +
+  scale_fill_brewer(type = 'seq', palette = 1) +
+  ggtitle('Monthly Pickups by Date') +
+  xlab('Date') +
   ylab('Number of Pickups') +
-  facet_wrap(~ Borough) +
-  ggsave('hourly_pickups_by_borough.png')
+  facet_wrap(~ month) +
+  ggsave('monthly_pickups_histogram.png')
+```
 
+## Individual Months and Dates
+
+```{r}
+# Create histogram of pickups, faceted by date
+# May
+ggplot(uber_may,
+       aes(x = hour)) +
+  geom_freqpoly(aes(color = day),
+                binwidth = 1) +
+  scale_x_continuous(breaks = seq(0, 24, 6)) +
+  scale_color_brewer(type = 'qual', 
+                     palette = 2) +
+  ggtitle('May Pickups') +
+  labs(color = 'Day') +
+  xlab('Hour') +
+  ylab('Number of Pickups') +
+  facet_wrap(~ date, ncol = 7)
+
+
+# June
+ggplot(uber_jun,
+       aes(x = hour)) +
+  geom_freqpoly(aes(color = day),
+                binwidth = 1) +
+  scale_x_continuous(breaks = seq(0, 24, 6)) +
+  scale_color_brewer(type = 'qual', 
+                     palette = 2) +
+  ggtitle('June Pickups') +
+  labs(color = 'Day') +
+  xlab('Hour') +
+  ylab('Number of Pickups') +
+  facet_wrap(~ date, ncol = 7)
+
+
+
+
+```
+
+# Multivariate Plots Section
+
+## Map Scatter Plot
+
+```{r echo=FALSE Map_Scatter_Plot}
+# Map Scatterplot of New York Pickups
+
+lon_left <- min(taxi_lookup$lon)
+lon_right <- max(taxi_lookup$lon)
+lat_bottom <- min(taxi_lookup$lat)
+lat_top <- max(taxi_lookup$lat)
+
+nyc <- get_map(location = c(lon_left, 
+                            lat_bottom,
+                            lon_right,
+                            lat_top), 
+               source = 'stamen')
+
+nycMap <- ggmap(nyc,
+                    extent = "panel")
+
+nycMap +
+  geom_point(aes(x = lon,
+                 y = lat,
+                 size = rides,
+                 color = rides,
+                 alpha = .01),
+             #alpha = .01,
+             data = uber_known.by_loc) +
+  scale_color_gradient2(low = 'yellow',
+                       high = 'red',
+                       mid = 'yellow',
+                       labels = comma,
+                       guide = guide_colorbar(barheight = 20,
+                                              title = 'Pickups')) +
+  ggtitle('Uber Pickups Scatterplot Map') +
+  scale_size(guide = 'none') +
+  guides(alpha = F) +
+  ggsave('scatterplot_map.png')
+
+```
+
+## Heatmap by month and date
+
+```{r}
+ggplot(aes(y = date, 
+           x = month),
+       data = uber.by_day) +
+  geom_tile(aes(fill = rides)) +
+  scale_fill_gradientn(colors = colorRampPalette(rev(brewer.pal(11, 'RdYlBu')))(100),
+                       guide = guide_colorbar(barheight = 20,
+                                              title = 'Pickups')) +
+  ylab('Date') +
+  xlab('Month') +
+  ggtitle('Rides per Date Heatmap') +
+  ggsave('rides_per_day_heatmap_bu_yl_rd.png')
+
+```
+
+
+## Rides per hour by Day Scatterplots
+
+```{r}
+# Number of rides per hour scatterplot, color by day, with smooth mean line
+ggplot(uber.by_hour,
+       aes(x = hour,
+           y = rides)) +
+  geom_point(aes(color = day),
+             position = position_jitter(),
+             alpha = .8) +
+  geom_smooth() +
+  ggtitle('Pickups by Hour and Day') +
+  ylab('Number of Pickups') +
+  xlab('Time') +
+  labs(color = 'Day') +
+  scale_x_continuous(breaks = 0:23) +
+  scale_color_brewer(type = 'seq',
+                     palette = 18)
+
+# Number of rides per hour scatterplot with a line for every day (Sun - Sat)
+ggplot(uber.by_hour,
+       aes(x = hour,
+           y = rides)) +
+  geom_point(alpha = .2,
+             position = position_jitter()) +
+  geom_line(aes(color = day),
+            stat = 'summary', 
+            fun.y = quantile,
+            fun.args  =list(probs = .5)) +
+  ggtitle('Pickups by Hour and Daily Median') +
+  ylab('Number of Pickups') +
+  xlab('Time') +
+  scale_x_continuous(breaks = 0:23) +
+  scale_color_brewer(type = 'seq',
+                     palette = 18)
 
 
 ```
 
 
 
-## Patterns over Time
-Look at ride patterns over intervals of time
-(Use over Time by: Hour, Day, Month)
-Over days (dates), make another frequency polygon
+-------------- Useless -------------------
+## Number of rides by hour, colored by borough, faceted by day
 
 ```{r}
-# Create histogram of pickups, faceted by date (ncol = 7)
-ggplot(uber_jan,
-       aes(x = hour)) +
-  geom_freqpoly(binwidth = 1,
-                aes(color = day)) +
-  scale_x_continuous(breaks = 0:23) +
-  scale_color_brewer(type = 'qual', palette = 2) +
-  ggtitle('January Pickups') +
-  ylab('Number of Pickups') +
-  facet_wrap(~ date, ncol = 7)
-
-# Look at individual months and dates:
-# June
-ggplot(subset(uber.by_date, month == 'June'),
-       aes(x = date,
+ggplot(uber_known.by_hour_borough,
+       aes(x = hour,
            y = rides)) +
-  geom_col()
-  geom_bar() +
-  scale_color_brewer(type = 'seq') +
-  scale_y_continuous(labels = comma) +
-  ylab('Number of Pickups') +
-  xlab('Date')
+  geom_point(aes(color = Borough),
+             alpha = .5) +
+  ggtitle('Pickups by Hour, Borough and Day') +
+  xlab('Hour') +
+  ylab('Pickups') +
+  scale_fill_brewer(type = 'div') +
+  facet_wrap(~ day) +
+  ggsave('pickups_by_hour_borough_day_scatter.png')
+```
 
-# April
-ggplot(subset(uber_apr),
-       aes(x = hour)) +
-  geom_freqpoly(binwidth = 1,
-                aes(color = day)) +
-  scale_x_continuous(breaks = seq(0,24,6)) +
-  scale_color_brewer(type = 'qual', 
-                     palette = 2) +
-  ggtitle('April Pickups') +
-  ylab('Number of Pickups') +
-  facet_wrap(~ date,
-             ncol = 7)
 
-# May
-ggplot(subset(uber_may),
-       aes(x = hour)) +
-  geom_freqpoly(binwidth = 1,
-                aes(color = day)) +
-  scale_x_continuous(breaks = seq(0,24,6)) +
-  scale_color_brewer(type = 'qual', 
-                     palette = 2) +
-  ggtitle('April Pickups') +
-  ylab('Number of Pickups') +
-  facet_wrap(~ date,
-             ncol = 7)
+# Correlation Tests
 
+```{r}
+
+# Testing corellation by hour and date
+with(uber.by_hour, cor.test(hour, rides))
+with(uber.by_date, cor.test(date, rides))
+
+
+```
+
+
+# Individual Dates
+
+```{r}
 # April 25
 ggplot(subset(uber, 
               month == 'April'  
@@ -452,91 +550,10 @@ ggplot(subset(uber_jan, date == 27),
 ggsave('jan_27_pickups.png')
 
 
-
-# Testing corellation by hour and date
-with(uber.by_hour, cor.test(hour, rides))
-with(uber.by_date, cor.test(date, rides))
-
-
 ```
 
-# Multivariate Plots Section
 
-## Map Scatter Plot
-
-```{r echo=FALSE Map_Scatter_Plot}
-# Map Scatterplot of New York Pickups
-# Create bounding box
-lon_left <- min(taxi_lookup$lon)
-lon_right <- max(taxi_lookup$lon)
-lat_bottom <- min(taxi_lookup$lat)
-lat_top <- max(taxi_lookup$lat)
-
-nyc <- get_map(location = c(lon_left, 
-                            lat_bottom,
-                            lon_right,
-                            lat_top), 
-               source = 'stamen')
-
-nycMap <- ggmap(nyc,
-                    extent = "panel")
-
-nycMap +
-  geom_point(aes(x = lon,
-                 y = lat,
-                 size = rides,
-                 color = rides,
-                 alpha = .01),
-             #alpha = .01,
-             data = uber_known.by_loc) +
-  scale_color_gradient2(low = 'yellow',
-                       high = 'red',
-                       mid = 'yellow',
-                       labels = comma,
-                       guide = guide_colorbar(barheight = 20,
-                                              title = 'Pickups')) +
-  ggtitle('Uber Pickups Scatterplot Map') +
-  scale_size(guide = 'none') +
-  guides(alpha = F) +
-  ggsave('scatterplot_map.png')
-
-```
-
-# Heatmap by month and date
-
-
-```{r}
-# 1st? Gametime decision.  This feels complete
-ggplot(aes(y = date, 
-           x = month),
-       data = uber.by_date) +
-  geom_tile(aes(fill = rides)) +
-  scale_fill_gradientn(colors = colorRampPalette(rev(brewer.pal(11, 'RdYlBu')))(100),
-                       guide = guide_colorbar(barheight = 20,
-                                              title = 'Pickups')) +
-  ylab('Date') +
-  xlab('Month') +
-  ggtitle('Rides per Date Heatmap') +
-  ggsave('rides_per_day_heatmap_bu_yl_rd.png')
-
-# Same but in blue to white to red
-ggplot(aes(y = date, 
-           x = month),
-       data = uber.by_date) +
-  geom_tile(aes(fill = rides)) +
-  scale_fill_gradientn(colours = colorRampPalette(c('blue', 
-                                   'white', 
-                                   'red'))(100),
-                       guide = guide_colorbar(barheight = 20,
-                                              title = 'Pickups')) +
-  ggtitle('Rides per Date Heatmap') +
-  xlab('Month') +
-  ylab('Date') +
-ggsave('rides_per_date_heatmap.png')
-
-```
-
-# Histogram of rides by date faceted by Month colored by Day
+# Number of rides by date faceted by Month colored by Day
 
 ```{r}
 # Pickups by date faceted by month
@@ -554,65 +571,6 @@ ggplot(uber,
   ggsave('monthly_pickups_histogram.png')
 ```
 
-# Number of rides by hour, colored by borough, faceted by day
-
-```{r}
-
-ggplot(uber_known.by_hour_borough,
-       aes(x = hour,
-           y = rides)) +
-  geom_point(aes(color = Borough),
-             alpha = .5) +
-  ggtitle('Pickups by Hour, Borough and Day') +
-  xlab('Hour') +
-  ylab('Pickups') +
-  scale_fill_brewer(type = 'div') +
-  facet_wrap(~ day) +
-  ggsave('pickups_by_hour_borough_day_scatter.png')
-```
-
-# Rides per hour by Day Scatterplots
-
-```{r}
-# Number of rides per hour scatterplot, color by day, with smooth mean line
-ggplot(uber.by_hour,
-       aes(x = hour,
-           y = rides)) +
-  geom_point(aes(color = day),
-             position = position_jitter(),
-             alpha = .8) +
-  geom_smooth() +
-  ggtitle('Number of Pickups by Hour and Day') +
-  ylab('Number of Pickups') +
-  xlab('Time') +
-  labs(color = 'Day') +
-  scale_x_continuous(breaks = 0:23) +
-  scale_color_brewer(type = 'seq',
-                     palette = 18)
-
-# Number of rides per hour scatterplot with a line for every day (Sun - Sat)
-ggplot(uber.by_hour,
-       aes(x = hour,
-           y = rides)) +
-  geom_point(alpha = .2,
-             position = position_jitter()) +
-  geom_line(aes(color = day),
-            stat = 'summary', 
-            fun.y = quantile,
-            fun.args  =list(probs = .5)) +
-  ggtitle('Number of Pickups by Hour and Day') +
-  ylab('Number of Pickups') +
-  xlab('Time') +
-  scale_x_continuous(breaks = 0:23) +
-  scale_color_brewer(type = 'seq',
-                     palette = 18)
-
-
-```
-
-
-
--------------- Useless -------------------
 
 # May and June Close-up (may not use)
 
