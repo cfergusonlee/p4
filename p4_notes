@@ -1,0 +1,48 @@
+Todo:
+Label axes and update variables
+  All graphs should have:
+    - rename rides to pickups
+    - legend lab
+    - xlab
+    - ylab
+    - title
+    - ggsave in graphs folder
+Write down immediate thoughts for each section
+  - Festivals are yuuge
+  - Weekday vs weekend patterns
+Flesh out ideas
+
+
+
+
+
+
+- Analysis:
+  - Daily patterns:
+    - Monday-Friday peaks at 8am, 6pm
+    - Thursday starts new peak around 10pm
+    - Friday and Saturday peaks at 7pm and 10pm
+  - Weekly patterns:
+    - Ramps up Sunday-Saturday    
+    - Saturday demand dips from night before then climbs
+  - Monthly patterns:
+    - Demand ramped up throughout the period, maybe due to:
+      - Increase in popularity
+      - Warmer weather (need more data to confirm)
+  - Outliers (April, May and June 100k+)
+    Possible Explanations:
+      - April was normal
+      - May 16: http://www.nyc.gov/html/nypd/html/pr/pr_2015_traffic_2015_05_15.shtml
+      - June 27: http://www.nyc.gov/html/nypd/html/pr/pr_2015_traffic_2015_06_26.shtml
+      - May 17-24 ridership pattern: something happened, not sure what.  Describe.  Create % change for that week
+  - Other / unusual patterns:
+    - Demand dips after a huge day, sometimes for a few days
+    - Explain May weird finger 
+    - 
+- Recommendations:
+  - Share data with drivers
+    - This worked wonders for linkdin
+    - Doesn't have to be all drivers if worried
+      - Share with top-tier or longer tenured drivers
+  - Encourage more festivals.  They cause the biggest increases in ridership
+
