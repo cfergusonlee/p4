@@ -293,8 +293,9 @@ ggplot(uber,
   ggsave('graphs/pickups_per_month_barplot.png')
 ```
 
-Demand over this 6-month span rose from a little under 2,000,000 rides in
-January to nearly 3 million in June.  This may have been due to an increase in popularity or warmer weather or both, but more data is needed to make 
+Demand over this 6-month span rose from a little under 2 million rides in
+January to nearly 3 million in June.  This may have been due to an increase in 
+popularity or warmer weather or both, but more data is needed to make 
 generalizations on monthly patterns.
 
 ## Pickups by Location
@@ -381,7 +382,8 @@ hundreds of thousands.  This was unusual because as I saw later, these patterns
 did not change over the course of the week.  Manhattan was still the busiest
 place on the weekend and during the week.  
 
-Even more unusual was the fact that Manhattan (pop 1.6 million) is not the most populated Borough in New York.  Brooklyn (2.6 million) and Queens (2.3 million) 
+Even more unusual was the fact that Manhattan (pop 1.6 million) is not the most 
+populated Borough in New York.  Brooklyn (2.6 million) and Queens (2.3 million) 
 have considerably larger populations.  By contrast, the population density of
 Manhattan is twice that of Brooklyn and triple that of Queens.  This could be
 worth investigating for Uber as they expand into more markets.  It would be
