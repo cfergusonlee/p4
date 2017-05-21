@@ -553,7 +553,10 @@ number of local festivals and a marathon taking place.
 
 The same patterns emerged on June 27th.  It started the same as any other
 Saturday but demand spiked in the afternoon, toping 10,000 rides for a single
-hour at 11pm.  Again, demand on Sunday, Monday and Tuesday afterwards was 
+hour at 11pm.  I was able to find [another bulletin](http://www.nyc.gov/html/nypd/html/pr/pr_2015_traffic_2015_06_26.shtml)
+from the NYC Police Department that seemed to explain the huge surge in pickups.
+Another mixture of local festivals and a marathon was responsible for the
+increase.  And again, demand on Sunday, Monday and Tuesday afterwards was 
 relatively unchanged.  I'd be very curious to see how demand was affected on
 Saturday, July 3rd and 4th.  I feel conflicted because demand should probably
 drop on those days but with July 4th being a major holiday I would expect
@@ -624,6 +627,14 @@ g <- arrangeGrob(p1, p2, p3, ncol = 1) #generates g
          units = 'in')
 ```
 
+I wanted to take a more in-depth look at how ridership changed on the two
+biggest Saturdays in May and June (the 16th and 27th, respectively).  I was also
+interested in how things changed on the lowest Saturday (May 23rd).  All 3 days
+had above-average turnout in the early morning, but it's what happened later in
+the day that had the biggest impact on the numbers.  While demand dropped below
+the average on May 23rd after 10am, it was consistently above normal throughout 
+the day on both May 16th and June 27.  This makes sense since demand increases
+dramatically after 10am on Saturdays in general. 
 
 
 # Bivariate Analysis
@@ -635,8 +646,39 @@ here. Use the questions below to guide your discussion.
 investigation. How did the feature(s) of interest vary with other features in \
 the dataset?
 
+Ridership varied dramatically from week to week over the 6 months but a few 
+patterns remained constant.  Demand was consistently greatest on Friday and
+Saturday of each week with few exceptions.  There were even a few super
+Saturdays that rose above others.  I think that Uber and their drivers could
+really benefit from taking a closer look at some of this data.  For instance,
+the two largest peaks both happened to coincide with large festivals and
+marathons.  Uber as an organization could benefit from trying to forma city
+partnerships to promote more activities as they seem to lead to surges in
+demand.  
+
+Uber drivers could benefit from having more data to help maximize their 
+time on the road.  As a former driver, I understand the struggle to figure out 
+when to start working and when to stop for each day.  Because they are 
+independent contractors, they set their own hours so they are entirely 
+responsible for how much they can earn each day.  This can also lead to burnout,
+however; because it's difficult to predict without experience.  It was fun 
+testing my theories about peak times even when I was proven wrong.  I had no 
+idea that a Thursday or even a Wednesday could be nearly as profitable as a 
+Friday in some cases.  I was also surprised to learn that demand spiked so much 
+around 6pm and that there really wasn't much of a lunch rush Monday-Friday.
+
+
 ### Did you observe any interesting relationships between the other features \
 (not the main feature(s) of interest)?
+
+The May faceted histogram helped me understand demand changes over time.
+Although it was not a particularly eventful day, May 25th caught my attention in
+the faceted histogram because it didn't look like any other Monday in the graph.
+The usual 8am peak was curiously absent and although it was the least busy day 
+in May and June, it started higher than all of the other Mondays.  It turns out
+it was because it was Memorial day.  Again, not a particularly interesting day 
+but still helpful for extrapolating to other Monday holidays.
+
 
 ### What was the strongest relationship you found?
 
@@ -654,9 +696,6 @@ lon_left <- min(taxi_lookup$lon)
 lon_right <- max(taxi_lookup$lon)
 lat_bottom <- min(taxi_lookup$lat)
 lat_top <- max(taxi_lookup$lat)
-
-subset(taxi_lookup,lat > 40.9)
-subset(taxi_lookup, lat > 40.8 & lon < -74.1)
 
 nyc <- get_map(location = c(lon_left, 
                             lat_bottom,
@@ -684,9 +723,17 @@ nycMap +
   ggtitle('Uber Pickups Scatterplot Map') +
   scale_size(guide = 'none') +
   guides(alpha = F) +
-  ggsave('graphs/scatterplot_map.png')
+  ggsave('graphs/scatterplot_map.png', 
+         width = 10, 
+         height = 8, 
+         units = 'in')
 
 ```
+
+Most rides originated from Manhattan, with a few outliers in Brooklyn, Queens
+and JFK Airport (lower right orange circle).  I pulled the latitude and
+longitude data using the Google Maps API and merged this data with the uber
+pickup data to generate the map.
 
 ## Heatmap by month and date
 
@@ -695,16 +742,27 @@ ggplot(aes(y = date,
            x = month),
        data = uber.by_day) +
   geom_tile(aes(fill = rides)) +
-  scale_fill_gradientn(colors = colorRampPalette(rev(brewer.pal(11, 'RdYlBu')))(100),
+  scale_fill_gradientn(colors = 
+                         colorRampPalette(rev(brewer.pal(11, 'RdYlBu')))(100),
                        guide = guide_colorbar(barheight = 20,
                                               title = 'Pickups')) +
+  scale_y_continuous(breaks = seq(0,30,5)) +
   ylab('Date') +
   xlab('Month') +
   ggtitle('Pickups per Date Heatmap') +
-  ggsave('graphs/pickups_per_day_heatmap.png')
+  ggsave('graphs/pickups_per_day_heatmap.png', 
+         width = 10, 
+         height = 7, 
+         units = 'in')
 
 ```
 
+This heatmap shows at a glance the busiest (June 27th) and slowest (Jan 27th)
+days during the 6-month time period.  It also highlights the overall trend of
+increasing ridership over time.  While January was mostly low in demand, things
+heated up slowly over time.  It was also interesting to note that while February
+was the shortest month, more people used the service each day on average than 
+in March or April.
 
 ## Pickups per hour by Day Scatterplots
 
@@ -724,7 +782,10 @@ ggplot(uber.by_hour,
   scale_x_continuous(breaks = 0:23) +
   scale_color_brewer(type = 'seq',
                      palette = 18) +
-  ggsave('graphs/rides_per_hour_color_by_day_scatter.png')
+  ggsave('graphs/rides_per_hour_color_by_day_scatter.png', 
+         width = 12, 
+         height = 8, 
+         units = 'in')
 
 # Number of rides per hour scatterplot with a line for every day (Sun - Sat)
 ggplot(uber.by_hour,
@@ -739,19 +800,45 @@ ggplot(uber.by_hour,
   ggtitle('Pickups by Hour and Daily Median') +
   ylab('Number of Pickups') +
   xlab('Time') +
+  labs(color = 'Day') +
   scale_x_continuous(breaks = 0:23) +
   scale_color_brewer(type = 'seq',
                      palette = 18) +
-  ggsave('graphs/rides_per_hour_scatter_with_day_lines.png')
+  ggsave('graphs/rides_per_hour_scatter_with_day_lines.png', 
+         width = 12, 
+         height = 8, 
+         units = 'in')
 
 
 ```
+
+The above graphs show the distribution of rides per hour for all dates in the
+6-month time period.  The top graph is colored by day, which highlighted how 
+demand rose along a gradient from Sunday (yellow) through Saturday (dark red).
+I threw in a smoothing curve to show the average demand for all days (blue).
+The bottom graph helps distinguish the two types of demand curves for Monday -
+Friday vs Saturday and Sunday.  It was interesting to see that both Saturday
+and Sunday start higher at midnight and don't include an 8am bump in demand.
 
 # Multivariate Analysis
 
 ### Talk about some of the relationships you observed in this part of the \
 investigation. Were there features that strengthened each other in terms of \
 looking at your feature(s) of interest?
+
+These 4 graphs would probably be of most use to an Uber driver trying to
+increase their profits.  The map scatterplot clearly highlights the best places
+to go while the colored pickups by hour scatterplot tells him when to be there.
+I think that Uber should share more of this type of data with drivers.  It takes
+a lot of the guesswork out of driving and would eliminate a lot of regret about
+whether they are missing out on opportunities.
+
+Sharing data is becoming more and more common and has done wonders for other
+companies.  When LinkdIn started sharing even simple data (who's looked at your
+profile and profile tips), their popularity skyrocketed.  People want data to
+make more informed choices.  This could be a win-win for both sides.  Drivers
+would be more satisfied, leading to lower turnover and passengers would be
+better served by more experienced drivers.
 
 ### Were there any interesting or surprising interactions between features?
 
