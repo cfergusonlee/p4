@@ -40,7 +40,7 @@ library(scales)
 setwd('/Users/courtneyfergusonlee/p4')
 uber <- read.csv('uber-raw-data-janjune-15.csv')
 taxi_lookup <- read.csv('taxi-zone-lookup.csv', stringsAsFactors = F)
-# Changes Bedford (Upstate New York) to Bedford-Stuyvesant (Brooklyn)
+# Edit Zones for more accurate location results
 taxi_lookup[17, 3] <- 'Bedford-Stuyvesant'
 taxi_lookup[23, 3] <- 'Bloomfield'
 taxi_lookup[81, 3] <- 'Eastchester, Bronx'
