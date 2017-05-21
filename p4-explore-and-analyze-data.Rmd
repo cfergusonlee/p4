@@ -25,11 +25,11 @@ library(bitops)
 library(RCurl)
 #devtools::install_github("dkahle/ggmap")
 library(ggmap)
-library(maptools)
-library(devtools)
+#library(maptools)
+#library(devtools)
 #install_github("quantide/mapIT")
 library(lubridate)
-library(scales)
+#library(scales)
 ```
 
 
@@ -37,7 +37,7 @@ library(scales)
 ```{r echo=FALSE, Load_the_Data}
 
 # Read csv's and load taxi lookup data
-setwd('/Users/courtneyfergusonlee/p4')
+setwd('/Users/courtneyfergusonlee/Downloads/p4-master')
 uber <- read.csv('uber-raw-data-janjune-15.csv')
 taxi_lookup <- read.csv('taxi-zone-lookup.csv', stringsAsFactors = F)
 # Changes Bedford (Upstate New York) to Bedford-Stuyvesant (Brooklyn)
@@ -248,6 +248,10 @@ ggplot(uber,
   ggsave('graphs/hourly_pickups_freqpoly.png')
 ```
 
+The graph above shows the total number of pickups per hour.  There are 3 notable
+spikes at midnight (0), 8am and 7pm.  The largest by far is the third peak.
+It's also interesting that there is a small bump around noon for lunch.
+
 
 ## Daily Pickups
 
@@ -267,6 +271,11 @@ ggplot(uber.by_day,
   ggsave('graphs/pickups_per_day_boxplot.png')
 ```
 
+Pickups per day followed an expected trend, with demand rising Monday - Friday, 
+then peaking on the weekend.  It's also interesting to note the differences in
+ranges for each day.  I expected Friday's variation to be larger than any other
+day but it was tighter and consistently larger instead.
+
 ## Monthly Pickups
 
 ```{r echo=FALSE, Monthly_Pickups}
@@ -283,6 +292,10 @@ ggplot(uber,
   xlab('Month') +
   ggsave('graphs/pickups_per_month_barplot.png')
 ```
+
+Demand over this 6-month span rose from a little under 2,000,000 rides in
+January to nearly 3 million in June.  This may have been due to an increase in popularity or warmer weather or both, but more data is needed to make 
+generalizations on monthly patterns.
 
 ## Pickups by Location
 
@@ -304,6 +317,10 @@ ggplot(uber_known.by_loc,
 
 ```
 
+The largest variation was in the location data.  Staten Island had very few
+pickups in each zone, with most falling in the low 100's.  Manhattan by contrast
+had the most pickups with some zones nearing 500,000.  An Uber driver would be
+wise to spend most of his time in that Borough.
 
 # Univariate Analysis
 
@@ -311,19 +328,75 @@ ggplot(uber_known.by_loc,
 
 ### What is the structure of your dataset?
 
+The Uber dataset consisted of 14 million observations of pickup data spread
+across 12 variables.  The data was submitted by the Taxi & Limousine Commission
+(TLC) through a Freedom of Information Law request submitted on June 22, 2015.
+Each observation represents a single pickup.
+
+Originally there were only 4 variables (Dispatch base number, pickup date, 
+affiliated base number, and location ID), but I joined that with taxi lookup
+data to get Zone and Borough names for each location ID.  I also wanted to map 
+each location to a set of coordinates so I used Google's API to get the latitude
+and longitude for each zone.  The Google API limits users to 2500 queries
+during each 24 hour period so I had to be strategic when joining the lookup
+data to the ridership data.
+
 ### What is/are the main feature(s) of interest in your dataset?
+
+I was most interested in how ridership varied over time and location.  I wanted 
+to know how it changed by hour, week, day and month.  I also wanted to
+know what the most popular Boroughs and Zones were.
+
+As a former Uber driver, I was very interested in how closely rider behavior 
+aligned with my expectations.  It is important to know the market in order
+to turn a profit.  Being in the right place at the right time can be the
+difference between a $2000 week and a $200 one.  If more drivers were more aware
+of the cyclical patterns in their area they would be better equipped to maximize
+their time and profit.
+
 
 ### What other features in the dataset do you think will help support your \
 investigation into your feature(s) of interest?
 
 ### Did you create any new variables from existing variables in the dataset?
 
+I parsed the month, date, day, and hour from each pickup timestamp using 
+lubridate to get a more granular analysis of patterns over time.  I also binned
+the pickup data by location and time to create some of the graphs.  I came
+across a dilema when choosing whether to include some of the taxi lookup data
+because the location data was missing.  It was a small subset (about 6000
+observations) but I did not want to throw away the data.  Instead, I kept all
+observations for the time period analyses and excluded them when making the
+scatterplot map and boxplot for the location analyses.
+
+Since the dataset was large, I ran most tests on a sample of 100,000 randomly
+selected observations before making the final plots on the population.  This
+saved a lot of time since some plots took a couple minutes (each) to run.
+
+
 ### Of the features you investigated, were there any unusual distributions? \
+The most unusual distributions came from the location data.  Some boroughs only
+had a few hundred pickups while others were in the 10's of thousands and even
+hundreds of thousands.  This was unusual because as I saw later, these patterns
+did not change over the course of the week.  Manhattan was still the busiest
+place on the weekend and during the week.  
+
+Even more unusual was the fact that Manhattan (pop 1.6 million) is not the most populated Borough in New York.  Brooklyn (2.6 million) and Queens (2.3 million) 
+have considerably larger populations.  By contrast, the population density of
+Manhattan is twice that of Brooklyn and triple that of Queens.  This could be
+worth investigating for Uber as they expand into more markets.  It would be
+interesting to look at ridership data for other cities to look for correlations.
+
 Did you perform any operations on the data to tidy, adjust, or change the form \
 of the data? If so, why did you do this?
 
-
-
+I used the dplyr and tidyr packages to reshape the data.  This helped parse the
+time data to get month, date, day and hour variables.  It also helped when I
+needed to bin and summarise observations to get the number of rides by time
+period and location.  One day I hope to shake Hadley Wickham's hand for what
+he has done for the data science community.  He is truly a prolific developer
+in the R community and I feel a certain level of comfort when I see his name
+in a package's documentation.
 
 # Bivariate Plots
 
