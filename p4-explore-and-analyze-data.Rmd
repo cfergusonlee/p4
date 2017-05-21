@@ -35,11 +35,13 @@ library(lubridate)
 
 
 ```{r echo=FALSE, Load_the_Data}
-
 # Read csv's and load taxi lookup data
-setwd('/Users/courtneyfergusonlee/Downloads/p4-master')
+setwd('/Users/courtneyfergusonlee/p4')
 uber <- read.csv('uber-raw-data-janjune-15.csv')
 taxi_lookup <- read.csv('taxi-zone-lookup.csv', stringsAsFactors = F)
+
+# Load taxi lookup data to minimize Google API queries
+load("uber.RData", .GlobalEnv)
 # Edit Zones for more accurate location results
 taxi_lookup[17, 3] <- 'Bedford-Stuyvesant'
 taxi_lookup[23, 3] <- 'Bloomfield'
@@ -397,8 +399,8 @@ time data to get month, date, day and hour variables.  It also helped when I
 needed to bin and summarise observations to get the number of rides by time
 period and location.  One day I hope to shake Hadley Wickham's hand for what
 he has done for the data science community.  He is truly a prolific developer
-in the R community and I feel a certain level of comfort when I see his name
-in a package's documentation.
+in and I feel a certain level of comfort when I see his name in a package's 
+documentation.
 
 # Bivariate Plots
 
@@ -422,6 +424,28 @@ ggplot(uber,
          units = 'in')
 ```
 
+This shows the distribution of pickups throughout the week.  It's easier to see
+some of the more nuanced patterns that emerge between the days.  For instance, 
+the 8am peak is only prevalent Monday - Friday, most likely due to morning rush 
+hour traffic.  The evening climax shifts slightly from 6 pm to 7 pm throughout
+the week and its duration lengthens as passengers edge closer to the weekend.
+Instead of retiring promptly after work, demand extends through midnight as the
+night life heats up.  
+
+This shift in rider behavior doesn't begin abruptly on Friday or even Thursday
+night as I would expect, but begins as early as Tuesday as workers loosen their
+ties in the evening.  The evening peak hovers around 120,000 rides on Monday
+then moves toward 140,000 Tuesday and toping 150,000 on Thursday before
+exploding on Friday and Saturday.  Interestingly, the 8am peak remains unchanged
+throughout the week at a steady 100,000.  People are not rushing to work, but
+they are rushing to the bar in larger numbers as the week presses on.
+
+Saturday and Sunday behavior removes the 8am peak for obvious reasons and instead, demand 
+grows steadily from 6am through midnight.  The growth on Saturday extends
+through this entire time period while Sunday demand tapers off around 6pm as
+riders prepare for the coming work week.  A driver looking to maximize their
+time could enjoy a good stretch of rides by anticipating this growth pattern.
+
 ## Monthly Pickups Colored by Day
 
 ```{r echo=FALSE, Monthly_Pickups_Colored_by_Day}
@@ -444,9 +468,38 @@ ggplot(uber,
          units = 'in')
 ```
 
+This graph gave me some of the most interesting information about overall rider
+behavior.  It shows both long-term increases in overal demand as well as more
+cyclical patterns during the week.  Demand started small in January with most
+days averaging about 40,000 - 70,000 pickups.  Februuary saw an uptick in the 
+number of 70,000+ days and June consistently reached over 100,000 rides each
+weekend.  It is unclear what exactly caused the increase in demand, but it would
+be interesting to examine year-over-year Uber data to see how rider behavior
+changed from winter to spring.
+
+Weekly patterns were very interesting.  Each week saw the same (relative) 
+pattern.  Monday was usually the least popular day, with demand rising steadily
+before climaxing on Saturday. Interestingly, Sunday was a more popular day than
+Monday, which could have been partly due to the extra runoff when Saturday
+night turned into Sunday early morning.
+
+Acknowledging that this weekly pattern existed piqued my interest in weeks that
+did not follow this pattern.  The week of May 17-24 was particularly interesting
+because the climax was on a Thursday and demand actually dropped on Friday and
+Saturday.  I tried looking up history on what was happening during that time 
+period but was unable to find anything to explain the strange shift in rider
+behavior.
+
+This also helped identify outliers.  Of particular note were Saturday, May 16
+and Saturday, June 27.  Both days saw demand surge past 100,000 riders.  It
+seemed worth investigating to understand why ridership increased so much and
+possibly how to replicate those circumstances.  The section below dives into
+May and June in more depth.
+
+
 ## May and June In-Depth
 
-```{r}
+```{r echo=FALSE, May_June}
 # Create histogram of pickups, faceted by date
 # May
 ggplot(uber_may,
@@ -485,6 +538,40 @@ ggplot(uber_jun,
          height = 8, 
          units = 'in')
 
+
+```
+
+I wanted to understand how demand changed thorughout May and June. In
+particular, I was interested in whether higher demand days had peaks that were 
+fundamentally different or whether they resulted from the same demand curves.
+I found a little bit of both.  May 16th started the same as any other Saturday, 
+but instead of demand plateuing around 7pm, it continued to rise through 11 pm.
+This spike in demand was most likely due to the festivals taking place in the
+area that weekend.  I was able to find a [notice](http://www.nyc.gov/html/nypd/html/pr/pr_2015_traffic_2015_05_15.shtml) 
+from the NYC Police Department announcing street closures that weekend due to a 
+number of local festivals and a marathon taking place.  
+
+The same patterns emerged on June 27th.  It started the same as any other
+Saturday but demand spiked in the afternoon, toping 10,000 rides for a single
+hour at 11pm.  Again, demand on Sunday, Monday and Tuesday afterwards was 
+relatively unchanged.  I'd be very curious to see how demand was affected on
+Saturday, July 3rd and 4th.  I feel conflicted because demand should probably
+drop on those days but with July 4th being a major holiday I would expect
+a good-sized surge in ridership.  Unfortunately, there was no available data for
+the month of July.
+
+Seeing these patterns led me to believe there may be at least two distinct
+populations of riders.  There was the Monday-Friday croud that regularly used 
+the service to get to work but there was also a second, wilder population that 
+liked to party when night fell and on the weekends.  This second population was 
+noticeably absent on May 22 and May 23, probably because they were spent from 
+the weekend before.  Demand did not suddenly drop off on the Sunday-Thursday of 
+the followng week, but it did on the following Friday and Saturday.  The 
+expected peaks from 6pm - 11pm simply did not happen on May 22 or May 23.
+
+## May and June Outliers
+
+```{r echo=FALSE, May_June_Outliers}
 # Look at percent change for May 16, May 24 and June 25 vs typical Saturdays
 # x-axis: hours
 # y-axis: percent change from baseline
@@ -537,6 +624,25 @@ g <- arrangeGrob(p1, p2, p3, ncol = 1) #generates g
          units = 'in')
 ```
 
+
+
+# Bivariate Analysis
+
+> **Tip**: As before, summarize what you found in your bivariate explorations
+here. Use the questions below to guide your discussion.
+
+### Talk about some of the relationships you observed in this part of the \
+investigation. How did the feature(s) of interest vary with other features in \
+the dataset?
+
+### Did you observe any interesting relationships between the other features \
+(not the main feature(s) of interest)?
+
+### What was the strongest relationship you found?
+
+
+
+
 # Multivariate Plots Section
 
 ## Map Scatter Plot
@@ -584,7 +690,7 @@ nycMap +
 
 ## Heatmap by month and date
 
-```{r}
+```{r echo=FALSE, Month_Date_Heatmap}
 ggplot(aes(y = date, 
            x = month),
        data = uber.by_day) +
@@ -641,6 +747,16 @@ ggplot(uber.by_hour,
 
 ```
 
+# Multivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the \
+investigation. Were there features that strengthened each other in terms of \
+looking at your feature(s) of interest?
+
+### Were there any interesting or surprising interactions between features?
+
+### OPTIONAL: Did you create any models with your dataset? Discuss the \
+strengths and limitations of your model.
 
 
 -------------- Useless -------------------
