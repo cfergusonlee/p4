@@ -361,6 +361,7 @@ their time and profit.
 ### What other features in the dataset do you think will help support your \
 investigation into your feature(s) of interest?
 
+
 ### Did you create any new variables from existing variables in the dataset?
 
 I parsed the month, date, day, and hour from each pickup timestamp using 
@@ -628,31 +629,32 @@ g <- arrangeGrob(p1, p2, p3, ncol = 1) #generates g
 ```
 
 I wanted to take a more in-depth look at how ridership changed on the two
-biggest Saturdays in May and June (the 16th and 27th, respectively).  I was also
-interested in how things changed on the lowest Saturday (May 23rd).  All 3 days
+biggest Saturdays in the dataset (May 16th and June 27th).  I was also
+interested in how it changed on the lowest Saturday (May 23rd).  All 3 days
 had above-average turnout in the early morning, but it's what happened later in
 the day that had the biggest impact on the numbers.  While demand dropped below
 the average on May 23rd after 10am, it was consistently above normal throughout 
 the day on both May 16th and June 27.  This makes sense since demand increases
-dramatically after 10am on Saturdays in general. 
+throughout the day after 10am on Saturdays in general. 
 
 
 # Bivariate Analysis
 
-> **Tip**: As before, summarize what you found in your bivariate explorations
-here. Use the questions below to guide your discussion.
+The May and June faceted histograms helped me understand demand changes over 
+time.  Although it was not a particularly eventful day, May 25th caught my 
+attention because it didn't look like any other Monday in the graph.  The usual 
+8am peak was curiously absent and although it was the least busy day in May and 
+June, it started higher than all of the other Mondays.  It turns out that was 
+Memorial day.  Again, not a particularly interesting day but still helpful for 
+extrapolating information about other Monday holidays.
 
-### Talk about some of the relationships you observed in this part of the \
-investigation. How did the feature(s) of interest vary with other features in \
-the dataset?
-
-Ridership varied dramatically from week to week over the 6 months but a few 
-patterns remained constant.  Demand was consistently greatest on Friday and
+Ridership varied dramatically from week to week over the 6 month period but a 
+few patterns remained constant.  Demand was consistently greatest on Friday and
 Saturday of each week with few exceptions.  There were even a few super
 Saturdays that rose above others.  I think that Uber and their drivers could
 really benefit from taking a closer look at some of this data.  For instance,
 the two largest peaks both happened to coincide with large festivals and
-marathons.  Uber as an organization could benefit from trying to forma city
+marathons.  Uber as an organization could benefit from trying to form city
 partnerships to promote more activities as they seem to lead to surges in
 demand.  
 
@@ -668,28 +670,11 @@ Friday in some cases.  I was also surprised to learn that demand spiked so much
 around 6pm and that there really wasn't much of a lunch rush Monday-Friday.
 
 
-### Did you observe any interesting relationships between the other features \
-(not the main feature(s) of interest)?
-
-The May faceted histogram helped me understand demand changes over time.
-Although it was not a particularly eventful day, May 25th caught my attention in
-the faceted histogram because it didn't look like any other Monday in the graph.
-The usual 8am peak was curiously absent and although it was the least busy day 
-in May and June, it started higher than all of the other Mondays.  It turns out
-it was because it was Memorial day.  Again, not a particularly interesting day 
-but still helpful for extrapolating to other Monday holidays.
-
-
-### What was the strongest relationship you found?
-
-
-
-
 # Multivariate Plots Section
 
 ## Map Scatter Plot
 
-```{r echo=FALSE Map_Scatter_Plot}
+```{r echo=FALSE, Map_Scatter_Plot}
 # Map Scatterplot of New York Pickups
 
 lon_left <- min(taxi_lookup$lon)
@@ -727,12 +712,11 @@ nycMap +
          width = 10, 
          height = 8, 
          units = 'in')
-
 ```
 
 Most rides originated from Manhattan, with a few outliers in Brooklyn, Queens
 and JFK Airport (lower right orange circle).  I pulled the latitude and
-longitude data using the Google Maps API and merged this data with the uber
+longitude data using the Google Maps API and merged them with the uber
 pickup data to generate the map.
 
 ## Heatmap by month and date
@@ -759,14 +743,13 @@ ggplot(aes(y = date,
 
 This heatmap shows at a glance the busiest (June 27th) and slowest (Jan 27th)
 days during the 6-month time period.  It also highlights the overall trend of
-increasing ridership over time.  While January was mostly low in demand, things
-heated up slowly over time.  It was also interesting to note that while February
-was the shortest month, more people used the service each day on average than 
-in March or April.
+increasing ridership over time.  It was also interesting to note that while 
+February was the shortest month, more people used the service each day on 
+average than in March or April.
 
 ## Pickups per hour by Day Scatterplots
 
-```{r}
+```{r echo=FALSE, Pickups_by_Hour_Day_Colored_Scatterplots}
 # Number of rides per hour scatterplot, color by day, with smooth mean line
 ggplot(uber.by_hour,
        aes(x = hour,
@@ -797,14 +780,15 @@ ggplot(uber.by_hour,
             stat = 'summary', 
             fun.y = quantile,
             fun.args  =list(probs = .5)) +
-  ggtitle('Pickups by Hour and Daily Median') +
+  ggtitle('Pickups by Hour with Daily Median') +
+  labs(color = 'Day') +
   ylab('Number of Pickups') +
   xlab('Time') +
   labs(color = 'Day') +
   scale_x_continuous(breaks = 0:23) +
   scale_color_brewer(type = 'seq',
                      palette = 18) +
-  ggsave('graphs/rides_per_hour_scatter_with_day_lines.png', 
+  ggsave('graphs/rides_per_hour_scatter_with_daily_medians.png', 
          width = 12, 
          height = 8, 
          units = 'in')
@@ -822,116 +806,72 @@ and Sunday start higher at midnight and don't include an 8am bump in demand.
 
 # Multivariate Analysis
 
-### Talk about some of the relationships you observed in this part of the \
-investigation. Were there features that strengthened each other in terms of \
-looking at your feature(s) of interest?
-
-These 4 graphs would probably be of most use to an Uber driver trying to
-increase their profits.  The map scatterplot clearly highlights the best places
-to go while the colored pickups by hour scatterplot tells him when to be there.
+These 4 graphs complement each other well to paint a clear picture of rider
+habits.  The map scatterplot highlights the most popular locations while the 
+colored pickups by hour scatterplots show how rider behavior changes over time.
 I think that Uber should share more of this type of data with drivers.  It takes
-a lot of the guesswork out of driving and would eliminate a lot of regret about
-whether they are missing out on opportunities.
+a lot of the guesswork out of driving and would eliminate a lot of regret over 
+missed opportunities.  Having a better understanding of rider behavior would
+help drivers plan a more concrete schedule.
 
-Sharing data is becoming more and more common and has done wonders for other
-companies.  When LinkdIn started sharing even simple data (who's looked at your
-profile and profile tips), their popularity skyrocketed.  People want data to
-make more informed choices.  This could be a win-win for both sides.  Drivers
-would be more satisfied, leading to lower turnover and passengers would be
-better served by more experienced drivers.
+# Final Plots and Summary
 
-### Were there any interesting or surprising interactions between features?
+> **Tip**: You've done a lot of exploration and have built up an understanding
+of the structure of and relationships between the variables in your dataset.
+Here, you will select three plots from all of your previous exploration to
+present here as a summary of some of your most interesting findings. Make sure
+that you have refined your selected plots for good titling, axis labels (with
+units), and good aesthetic choices (e.g. color, transparency). After each plot,
+make sure you justify why you chose each plot by describing what it shows.
 
-### OPTIONAL: Did you create any models with your dataset? Discuss the \
-strengths and limitations of your model.
+### New York City Map Scatterplot
+```{r echo=FALSE, Plot_One}
+# Map Scatterplot of New York Pickups
 
+lon_left <- min(taxi_lookup$lon)
+lon_right <- max(taxi_lookup$lon)
+lat_bottom <- min(taxi_lookup$lat)
+lat_top <- max(taxi_lookup$lat)
 
--------------- Useless -------------------
-## Number of rides by hour, colored by borough, faceted by day
+nyc <- get_map(location = c(lon_left, 
+                            lat_bottom,
+                            lon_right,
+                            lat_top), 
+               source = 'stamen')
 
-```{r}
-ggplot(uber_known.by_hour_borough,
-       aes(x = hour,
-           y = rides)) +
-  geom_point(aes(color = Borough),
-             alpha = .5) +
-  ggtitle('Pickups by Hour, Borough and Day') +
-  xlab('Hour') +
-  ylab('Pickups') +
-  scale_fill_brewer(type = 'div') +
-  facet_wrap(~ day) +
-  ggsave('pickups_by_hour_borough_day_scatter.png')
+nycMap <- ggmap(nyc,
+                    extent = "panel")
+
+nycMap +
+  geom_point(aes(x = lon,
+                 y = lat,
+                 size = rides,
+                 color = rides,
+                 alpha = .01),
+             #alpha = .01,
+             data = uber_known.by_loc) +
+  scale_color_gradient2(low = 'yellow',
+                       high = 'red',
+                       mid = 'yellow',
+                       labels = comma,
+                       guide = guide_colorbar(barheight = 20,
+                                              title = 'Pickups')) +
+  ggtitle('Uber Pickups Scatterplot Map') +
+  scale_size(guide = 'none') +
+  guides(alpha = F) +
+  ggsave('graphs/scatterplot_map.png', 
+         width = 10, 
+         height = 8, 
+         units = 'in')
 ```
 
-
-# Correlation Tests
-
-```{r}
-
-# Testing corellation by hour and date
-with(uber.by_hour, cor.test(hour, rides))
-with(uber.by_date, cor.test(date, rides))
+### Description One
 
 
-```
+### Monthly Pickups Colored by Day
 
-
-# Individual Dates
-
-```{r}
-# April 25
-ggplot(subset(uber, 
-              month == 'April'  
-              & date == 25),
-       aes(x = hour)) +
-  geom_freqpoly(binwidth = 1,
-                aes(color = day)) +
-  scale_x_continuous(breaks = 0:23) +
-  scale_color_brewer(type = 'qual', palette = 2) +
-  ggtitle('April 25th Pickups') +
-  ylab('Number of Pickups')
-
-# May 16
-ggplot(subset(uber,
-              Month == 'May',
-              date == 16),
-       aes(x = hour)) +
-  geom_freqpoly(binwidth = 1,
-                aes(color = day)) +
-  scale_x_continuous(breaks = 0:23) +
-  scale_color_brewer(type = 'qual', palette = 2) +
-  ggtitle('January 13th Pickups') +
-  ylab('Number of Pickups')
-
-# June 27 (Missing Data! Where'd midnight - 7am go?)
-ggplot(subset(uber_jun, date == 27),
-       aes(x = hour)) +
-  geom_freqpoly(binwidth = 1,
-                aes(color = day)) +
-  scale_x_continuous(breaks = 0:23) +
-  scale_color_brewer(type = 'qual', palette = 2) +
-  ggtitle('June 27th Pickups') +
-  ylab('Number of Pickups')
-
-# - Tues, Jan 27 (Lowest Number of Rides)
-ggplot(subset(uber_jan, date == 27),
-       aes(x = hour)) +
-  geom_freqpoly(binwidth = 1,
-                aes(color = day)) +
-  scale_x_continuous(breaks = 0:23) +
-  scale_color_brewer(type = 'qual', palette = 2) +
-  ggtitle('January 27th Pickups') +
-  ylab('Number of Pickups')
-ggsave('jan_27_pickups.png')
-
-
-```
-
-
-# Number of rides by date faceted by Month colored by Day
-
-```{r}
-# Pickups by date faceted by month
+```{r echo=FALSE, Plot_Two}
+# Number of pickups over time colored by day
 ggplot(uber,
        aes(x = date)) +
   geom_histogram(binwidth = 1,
@@ -939,207 +879,71 @@ ggplot(uber,
   scale_x_continuous(breaks = seq(7, 28, 7)) +
   scale_y_continuous(labels = comma) +
   scale_fill_brewer(type = 'seq', palette = 1) +
-  ggtitle('Monthly Pickups by Date') +
+  ggtitle('Monthly Pickups Colored by Day') +
+  labs(fill = 'Day') +
   xlab('Date') +
   ylab('Number of Pickups') +
   facet_wrap(~ month) +
-  ggsave('monthly_pickups_histogram.png')
+  ggsave('graphs/monthly_pickups_histogram.png', 
+         width = 12, 
+         height = 8, 
+         units = 'in')
 ```
 
-
-# May and June Close-up (may not use)
-
-```{r}
-# May Histogram
-ggplot(uber_may,
-       aes(x = date)) +
-  geom_histogram(binwidth = 1,
-                aes(fill = day)) +
-  scale_x_continuous(breaks = 1:31) +
-  scale_fill_brewer(type = 'seq', palette = 1) +
-  ggtitle('May Pickups') +
-  ylab('Number of Pickups') +
-ggsave('may_pickups_histogram.png')
-
-# June Histogram
-ggplot(uber_june,
-       aes(x = date)) +
-  geom_histogram(binwidth = 1,
-                aes(fill = day)) +
-  scale_x_continuous(breaks = 1:31) +
-  scale_fill_brewer(type = 'seq', palette = 1) +
-  ggtitle('June Pickups') +
-  ylab('Number of Pickups') +
-ggsave('june_pickups_histogram.png')
-```
+### Description Two
 
 
+### Pickups Per Hour with Daily Median Lines
 
-# Create a 3-graph smoothing progression:
-
-```{r}
-
-
-
-# By quarter-hour
-p1 <- ggplot(uber.by_quarter_hour,
-       aes(x = hour_plus_quarter,
-           y = rides)) +
-  geom_line(color = I('green')) +
-  geom_smooth()
-
-# By half hour
-p2 <- ggplot(uber.by_half_hour,
-       aes(x = hour_plus_half,
-           y = rides)) +
-  geom_line(alpha = .2)
-
-# By hour
-p3 <- ggplot(uber.by_hour,
-       aes(x = hour,
-           y = rides)) +
-  geom_line(alpha = .2)
-
-grid.arrange(p1, p2, p3, ncol = 1)
-
-# Make a histogram! of Manhattan Zone pickups
-ggplot(data = subset(uber_jan,
-                     Borough == 'Manhattan'),
-       aes(x = Zone)) +
-  geom_histogram()
-```
-
-```{r}
-# Scatterplot of pickups per hour in one color plus 3 quartiles
+```{r echo=FALSE, Plot_Three}
+# Number of rides per hour scatterplot with a line for every day (Sun - Sat)
 ggplot(uber.by_hour,
        aes(x = hour,
            y = rides)) +
   geom_point(alpha = .2,
              position = position_jitter()) +
-  geom_line(stat = 'summary', fun.y = quantile,
-            fun.args  =list(probs = .25), 
-            color = 'green') +
-  geom_line(stat = 'summary', fun.y = quantile,
-            fun.args  =list(probs = .5), 
-            color = 'blue') +
-  geom_line(stat = 'summary', fun.y = quantile,
-            fun.args  =list(probs = .95), 
-            color = 'purple') +
-  #scale_y_log10() +
-  ggtitle('Number of Pickups by Hour and Date') +
+  geom_line(aes(color = day),
+            stat = 'summary', 
+            fun.y = quantile,
+            fun.args  =list(probs = .5)) +
+  ggtitle('Pickups by Hour with Daily Median') +
+  labs(color = 'Day') +
   ylab('Number of Pickups') +
   xlab('Time') +
+  labs(color = 'Day') +
   scale_x_continuous(breaks = 0:23) +
-  scale_color_brewer(type = 'div')
+  scale_color_brewer(type = 'seq',
+                     palette = 18) +
+  ggsave('graphs/rides_per_hour_scatter_with_daily_medians.png', 
+         width = 12, 
+         height = 8, 
+         units = 'in')
 ```
 
+### Description Three
 
-# Density Map with stat_density2d
+------
 
-```{r}
-nyc <- get_map("jackson heights, new york", zoom = 11)
+# Reflection
 
-nycMap <- ggmap(nyc,
-                    extent = "device", 
-                    legend = "none")
+> **Tip**: Here's the final step! Reflect on the exploration you performed and
+the insights you found. What were some of the struggles that you went through?
+What went well? What was surprising? Make sure you include an insight into
+future work that could be done with the dataset.
 
-nycMap +
-  stat_density2d(aes(x = lon, 
-                     y = lat, 
-                     fill = ..level..),
-                 alpha = .2,
-                 size = .5, 
-                 bins = 50, 
-                 data = subset(uber_sample, 
-                               Borough != 'Unknown'),
-                 geom = "polygon",
-                 show.legend = F) +
-  scale_fill_gradient2(#"Pickups",
-                       #limits = c(0, 200),
-                       low = "white", 
-                       mid = "yellow", 
-                       high = "red",
-                       guide = 'none') +
-  geom_point(aes(x = lon,
-                 y = lat,
-                 alpha = .05,
-                 color = Borough),
-             data = subset(uber_sample, 
-                               Borough != 'Unknown'))
+# Conclusion
 
-```
-
-# Using binned location data
-
-```{r}
-
-nyc <- get_map("jackson heights, new york", zoom = 11)
-nycMap <- ggmap(nyc,
-                    extent = "device")
-
-nycMap +
-  geom_point(data = uber_known.by_loc,
-             aes(x = lon,
-                 y = lat,
-                 color = n,
-                 size = n/100,
-                 alpha = .1)) +
-  coord_trans
-
-```
+Sharing data is becoming more and more common and has helped several tech
+companies grow.  When LinkdIn started sharing even simple data (who's looked at 
+your profile and profile tips), their popularity skyrocketed.  People want data 
+to make more informed choices.  This seems like a great opportunity to empower
+more drivers.  Helping drivers perform their jobs more effectively could be a 
+win for all sides.  Drivers would be more satisfied, leading to lower turnover 
+and passengers would be better served by more experienced (and perhaps 
+friendlier) drivers.
 
 
 
-# Experiments Sections:
-- Consider turning map scatterplot into map hexplot
-
-```{r}
-nycMap +
-  coord_cartesian() +
-  stat_binhex(data = subset(uber_sample,
-                        Borough != 'Unknown'),
-                 aes(x = lon,
-                     y = lat,
-                     alpha = .05))
-?stat_density2d
-```
-
-
-```{r}
-# NYC Map Scatter plot with density plot (no longer used)
-nycMap +
-  stat_density2d(aes(x = lon, 
-                     y = lat, 
-                     fill = ..level..),
-                 alpha = .2,
-                 bins = 10, 
-                 data = subset(uber_sample, 
-                               Borough != 'Unknown'),
-                 geom = "polygon",
-                 show.legend = F) +
-  scale_fill_gradient2(#"Pickups",
-                       low = "white", 
-                       mid = "yellow", 
-                       high = "red",
-                       limits = c(0, 360),
-                       breaks = seq(0, 350, 50)) +
-  geom_point(aes(x = lon,
-                 y = lat,
-                 size = n,
-                 color = n,
-                 alpha = .01),
-             #alpha = .01,
-             data = subset(uber_sample_known.by_loc, 
-                               Borough != 'Unknown')) +
-  scale_color_gradient2(low = 'yellow',
-                       high = 'red',
-                       mid = 'yellow',
-                       guide = guide_colorbar(barheight = 20,
-                                              title = 'Pickups')) +
-  scale_size(guide = 'none') +
-  guides(alpha = F)
-
-```
 
 
 # Sources of data:
