@@ -246,7 +246,7 @@ on June 22, 2015. I pulled the data from the FiveThirtyEight github repo found
 observation represents a single pickup with the following columns:
 
 Variable | Definition
-------------------- | ---------------------------------------------------
+------------------- | --------------------------------------------------
 Dispatching_base_num | The TLC base company code that dispatched the Uber
 Pickup_date | The full date of the pickup in yyyy-mm-dd h:m:s format
 Affiliated_base_num | The TLC base company code of the Uber pickup
