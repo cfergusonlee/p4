@@ -663,7 +663,7 @@ however; because it's often difficult to predict demand without experience.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, Map_Scatter_Plot}
 # Map Scatterplot of New York Pickups
-
+warnings()
 lon_left <- min(taxi_lookup$lon)
 lon_right <- max(taxi_lookup$lon)
 lat_bottom <- min(taxi_lookup$lat)
