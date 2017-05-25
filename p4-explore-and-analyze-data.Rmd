@@ -40,16 +40,16 @@ library(ggmap)
 #library(devtools)
 #install_github("quantide/mapIT")
 library(lubridate)
-#library(scales)
+library(viridis)
 ```
 
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, Load_the_Data}
 # Read csv's and load taxi lookup data
-setwd('/Users/courtneyfergusonlee/p4/data')
-uber <- read.csv('uber-raw-data-janjune-15.csv')
-taxi_lookup <- read.csv('taxi-zone-lookup.csv', stringsAsFactors = F)
+setwd('/Users/courtneyfergusonlee/p4')
+uber <- read.csv('data/uber-raw-data-janjune-15.csv')
+taxi_lookup <- read.csv('data/taxi-zone-lookup.csv', stringsAsFactors = F)
 
 # Load from RData file until ready to knit
 load('uber.RData', .GlobalEnv)
@@ -107,10 +107,44 @@ uber_sample <- uber[sample(1:length(uber$locationID), 100000), ]
 uber_sample <- uber_sample %>%
   inner_join(taxi_lookup, 
              by = c('locationID' = 'LocationID')) %>%
-  mutate(hour = hour(Pickup_date),
+  mutate(Pickup_date = ymd_hms(Pickup_date),
+         hour = hour(Pickup_date),
          day = wday(Pickup_date, label = T, abbr = F),
          month = month(Pickup_date, label = T, abbr = F),
-         date = day(Pickup_date))
+         date = day(Pickup_date),
+         Borough = as.factor(Borough),
+         Zone = as.factor(Zone),
+         locationID = as.factor(locationID)) %>%
+  droplevels()
+
+
+
+
+######## Sandbox ########
+help(package ='lubridate')
+
+uber_sample <- uber_sample %>%
+  mutate(Pickup_date = ymd_hms(Pickup_date),
+         Borough = as.factor(Borough),
+         Zone = as.factor(Zone),
+         locationID = as.factor(locationID))
+
+uber_sample <- uber_sample %>%
+  mutate(Pickup_date = ymd_hms(Pickup_date),
+         hour = hour(Pickup_date),
+         day = wday(Pickup_date, label = T, abbr = F),
+         month = month(Pickup_date, label = T, abbr = F),
+         date = day(Pickup_date),
+         Borough = as.factor(Borough),
+         Zone = as.factor(Zone),
+         locationID = as.factor(locationID)) %>%
+  droplevels()
+
+uber.by_day <- uber.by_day %>%
+  droplevels()
+
+str(uber_sample)
+##########################
 
 # Known locations needeed for map
 uber_sample_known <- uber_sample %>%
@@ -126,15 +160,19 @@ uber_sample_known <- uber_sample %>%
 uber <- uber %>%
   inner_join(taxi_lookup, 
              by = c('locationID' = 'LocationID')) %>%
-  mutate(hour = hour(Pickup_date),
+  mutate(Pickup_date = ymd_hms(Pickup_date),
+         hour = hour(Pickup_date),
          day = wday(Pickup_date, label = T, abbr = F),
          month = month(Pickup_date, label = T, abbr = F),
-         date = day(Pickup_date))
+         date = day(Pickup_date),
+         Borough = as.factor(Borough),
+         Zone = as.factor(Zone),
+         locationID = as.factor(locationID)) %>%
+  droplevels()
 
-# Create Zone, Borough, lat, lon, hour, day, month and date variables
+# Filter known boroughs for location analyses
 uber_known <- uber %>%
   filter(Borough != 'Unknown' & Borough != 'EWR') # EWR is NJ
-
 
 # Create month tables for quicker execution
 uber_jan <- uber %>%
@@ -271,6 +309,36 @@ know what the most popular Boroughs and Zones were.
 
 # Univariate Plots Section
 
+## Dimensions
+
+```{r}
+dim(uber)
+```
+
+
+## Structure
+
+```{r}
+str(uber_sample)
+```
+
+## Summary
+
+```{r}
+summary(uber_sample)
+```
+
+
+## Table
+
+```{r}
+
+```
+
+
+## 
+
+
 ## Pickups by Hour
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, Hourly_Pickups}
@@ -293,7 +361,7 @@ lunch.
 ## Pickups by Day
 
 ```{r Day_Barchart}
-ggplot(uber_sample,
+ggplot(uber,
        aes(x = day)) +
   geom_bar(aes(fill = day)) +
   scale_fill_brewer(type = 'seq',
@@ -319,7 +387,7 @@ ggplot(uber,
                     direction = 1) +
   scale_y_continuous(labels = comma) +
   ggtitle('Pickups per Month') +
-  labs(fill = 'Month') +
+  guides(fill = 'none') +
   ylab('Number of Pickups') +
   xlab('Month') +
   ggsave('graphs/pickups_per_month_barplot.png')
@@ -347,7 +415,8 @@ ggplot(uber_known,
                                 1000000,
                                 10000000)) +
   ggtitle('Pickups by Borough') +
-  ylab('Number of Pickups')
+  ylab('Number of Pickups \n (Log Scale)') +
+  guides(fill = 'none')
 ```
 
 
@@ -452,7 +521,7 @@ ggplot(uber.by_day,
   scale_y_continuous(labels = comma,
                      breaks = seq(0, 150000, 25000)) +
   ggtitle('Pickups per Day') +
-  labs(color = 'Day') +
+  guides(color = 'none') +
   xlab('Day') +
   ylab('Number of Pickups') +
   ggsave('graphs/pickups_per_day_boxplot.png')
@@ -665,7 +734,7 @@ ggplot(uber_known.by_loc,
   scale_color_brewer(type = 'qual',
                      palette = 6) +
   ggtitle('Pickups by Location') +
-  ylab('Number of Pickups') +
+  ylab('Number of Pickups \n (Binned by Zone)') +
   ggsave('graphs/pickups_by_location_boxplot.png', 
          width = 12, 
          height = 8, 
@@ -783,6 +852,12 @@ ggplot(aes(y = date,
 
 ```
 
+
+```{r Ride_Statistics_By_Month}
+# Ride statistics by month
+by(uber.by_day$rides, uber.by_day$month, summary)
+```
+
 This heatmap highlights overall changes in ridership over time. It is easy to
 see the busiest (June 27th) and slowest (Jan 27th)  days during the 6-month time
 period.  I used dplyr's group_by and summarise functions to bin the ride data
@@ -836,8 +911,6 @@ ggplot(uber.by_hour,
          width = 12, 
          height = 8, 
          units = 'in')
-
-?scale_color_gradient
 ```
 
 The above graphs show the distribution of rides per hour for all dates in the
@@ -846,6 +919,56 @@ demand rose along a gradient from Sunday (yellow) through Saturday (dark red).
 I threw in a smoothing curve to show the (mean) average demand for all days. The
 bottom graph helps distinguish the two types of demand curves for Monday -
 Friday vs Saturday and Sunday.
+
+## Pickups by Hour 2D Density Plot
+
+```{r}
+ggplot(uber.by_hour,
+       aes(x = hour,
+           y = rides)) +
+  geom_bin2d(bins = 23) +
+  scale_x_continuous(breaks = 0:23) +
+  scale_fill_gradientn(colors = 
+                         colorRampPalette((brewer.pal(8, 'YlOrRd')))(50)) +
+  ggtitle('Pickups per Hour 2D Density Plot') +
+  ylab('Number of Pickups') +
+  xlab('Time')
+
+ggplot(uber.by_hour,
+       aes(x = hour,
+           y = rides)) +
+  geom_bin2d(bins = 23) +
+  scale_x_continuous(breaks = 0:23) +
+  scale_fill_gradientn(colors = 
+                         colorRampPalette(c('blue', 'red'))(100)) +
+  ggtitle('Pickups per Hour 2D Density Plot') +
+  ylab('Number of Pickups') +
+  xlab('Time')
+
+ggplot(uber.by_hour,
+       aes(x = hour,
+           y = rides)) +
+  geom_bin2d(bins = 23) +
+  scale_x_continuous(breaks = 0:23) +
+  scale_fill_gradientn(colors = 
+                         colorRampPalette((brewer.pal(8, 'OrRd')))(50)) +
+  ggtitle('Pickups per Hour 2D Density Plot') +
+  ylab('Number of Pickups') +
+  xlab('Time')
+library(viridis)
+ggplot(uber.by_hour,
+       aes(x = hour,
+           y = rides)) +
+  geom_bin2d(bins = 23) +
+  scale_x_continuous(breaks = 0:23) +
+  scale_fill_viridis() +
+  ggtitle('Pickups per Hour 2D Density Plot') +
+  labs(fill = 'Count') +
+  ylab('Number of Pickups') +
+  xlab('Time')
+
+```
+
 
 # Multivariate Analysis
 
