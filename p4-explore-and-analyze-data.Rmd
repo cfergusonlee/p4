@@ -15,7 +15,9 @@ td {  /* Table  */
 </style>
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
 ```
 
 
@@ -45,9 +47,12 @@ library(lubridate)
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, Load_the_Data}
 # Read csv's and load taxi lookup data
-setwd('/Users/courtneyfergusonlee/p4')
+setwd('/Users/courtneyfergusonlee/p4/data')
 uber <- read.csv('uber-raw-data-janjune-15.csv')
 taxi_lookup <- read.csv('taxi-zone-lookup.csv', stringsAsFactors = F)
+
+# Load from RData file until ready to knit
+load('uber.RData', .GlobalEnv)
 
 # Edit Zones for more accurate location results
 taxi_lookup[17, 3] <- 'Bedford-Stuyvesant'
@@ -266,14 +271,15 @@ know what the most popular Boroughs and Zones were.
 
 # Univariate Plots Section
 
-## Hourly Pickups
+## Pickups by Hour
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, Hourly_Pickups}
 ggplot(uber,
        aes(x = hour)) +
   geom_freqpoly(binwidth = 1,
                 color = I('Blue')) +
-  scale_x_continuous(breaks = 0:23) +
+  scale_x_continuous(limits = c(0, 23),
+                     breaks = 0:23) +
   ggtitle('Pickups per Hour') +
   xlab('Time') +
   ylab('Number of Pickups') +
@@ -284,29 +290,25 @@ The graph above shows the total number of pickups per hour.  There are 3 notable
 spikes at midnight (0), 8am and 7pm.  There is also a small bump around noon for
 lunch.
 
+## Pickups by Day
 
-## Daily Pickups
-
-```{r echo=FALSE, message=FALSE, warning=FALSE, Daily_Pickups}
-ggplot(uber.by_day,
-       aes(x = day,
-           y = rides)) +
-  geom_boxplot(aes(color = day)) +
-  scale_color_brewer(type = 'qual',
+```{r Day_Barchart}
+ggplot(uber_sample,
+       aes(x = day)) +
+  geom_bar(aes(fill = day)) +
+  scale_fill_brewer(type = 'seq',
                      palette = 2) +
-  scale_y_continuous(labels = comma,
-                     breaks = seq(0, 150000, 25000)) +
   ggtitle('Pickups per Day') +
-  labs(color = 'Day') +
-  xlab('Day') +
   ylab('Number of Pickups') +
-  ggsave('graphs/pickups_per_day_boxplot.png')
+  xlab('Day') +
+  guides(fill = 'none') +
+  ggsave('graphs/day_barchart.png')
 ```
 
 Pickups per day followed an expected trend, with demand rising Monday - 
 Friday, then peaking on the weekend.
 
-## Monthly Pickups
+## Pickups by Month
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, Monthly_Pickups}
 ggplot(uber,
@@ -323,32 +325,33 @@ ggplot(uber,
   ggsave('graphs/pickups_per_month_barplot.png')
 ```
 
-Demand over this 6-month span rose from a little under 2 million rides in
+Demand over this 6-month span went from a little under 2 million rides in
 January to nearly 3 million in June.
 
-## Pickups by Location
+## Pickups by Borough
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, Location_Pickups}
-ggplot(uber_known.by_loc,
-       aes(x = Borough,
-           y = rides)) +
-  geom_boxplot(aes(color = Borough)) +
-  scale_y_log10(labels = comma,
-                breaks = c(100, 1000, 10000, 100000, 500000)) +
-  scale_color_brewer(type = 'qual',
-                     palette = 6) +
-  ggtitle('Pickups by Location') +
-  ylab('Number of Pickups') +
-  ggsave('graphs/pickups_by_location_boxplot.png', 
-         width = 12, 
-         height = 8, 
-         units = 'in')
+```{r Pickups_by_Borough}
+ggplot(uber_known,
+       aes(x = Borough)) +
+  geom_bar(aes(fill = Borough)) +
+  coord_flip() +
+  scale_fill_brewer(type = 'qual',
+                    palette = 4) +
+  scale_y_continuous(trans = 'log',
+                     labels = comma,
+                     breaks = c(10,
+                                100,
+                                1000,
+                                10000,
+                                100000,
+                                1000000,
+                                10000000)) +
+  ggtitle('Pickups by Borough') +
+  ylab('Number of Pickups')
 ```
 
-The largest variation was in the location data.  Staten Island had very few
-pickups per zone, with most falling in the low 100's.  Manhattan had the most 
-pickups with some zones nearing 500,000.  I used a log scale for the y axis 
-because the data was so disperse.
+
+
 
 # Univariate Analysis
 
@@ -405,7 +408,7 @@ ggplot(uber,
        aes(x = hour)) +
   geom_histogram(binwidth = 1,
                 aes(color = day)) +
-  scale_x_continuous(breaks = seq(0,24,6)) +
+  scale_x_continuous(breaks = seq(0,18,6)) +
   scale_color_brewer(type = 'qual', palette = 1) +
   ggtitle('Hourly Pickups by Day') +
   guides(color = F) +
@@ -436,6 +439,26 @@ Saturday and Sunday behavior removes the 8am peak for obvious reasons and
 instead, demand grows steadily from 6am until midnight.  The growth on Saturday
 extends through this entire time period while Sunday demand tapers off around 
 6pm as riders prepare for the coming work week.
+
+## Daily Pickups
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Daily_Pickups_Boxplot}
+ggplot(uber.by_day,
+       aes(x = day,
+           y = rides)) +
+  geom_boxplot(aes(color = day)) +
+  scale_color_brewer(type = 'qual',
+                     palette = 2) +
+  scale_y_continuous(labels = comma,
+                     breaks = seq(0, 150000, 25000)) +
+  ggtitle('Pickups per Day') +
+  labs(color = 'Day') +
+  xlab('Day') +
+  ylab('Number of Pickups') +
+  ggsave('graphs/pickups_per_day_boxplot.png')
+```
+
+
 
 ## Monthly Pickups Colored by Day
 
@@ -496,7 +519,8 @@ ggplot(uber_may,
        aes(x = hour)) +
   geom_freqpoly(aes(color = day),
                 binwidth = 1) +
-  scale_x_continuous(breaks = seq(0, 24, 6)) +
+  scale_x_continuous(limits = c(0, 23),
+                     breaks = seq(0, 18, 6)) +
   scale_color_brewer(type = 'qual', 
                      palette = 2) +
   ggtitle('May Pickups') +
@@ -515,7 +539,8 @@ ggplot(uber_jun,
        aes(x = hour)) +
   geom_freqpoly(aes(color = day),
                 binwidth = 1) +
-  scale_x_continuous(breaks = seq(0, 24, 6)) +
+  scale_x_continuous(limits =c(0, 23),
+                     breaks = seq(0, 18, 6)) +
   scale_color_brewer(type = 'qual', 
                      palette = 2) +
   ggtitle('June Pickups') +
@@ -626,7 +651,31 @@ had above-average turnout in the early morning, but it's what happened later in
 the day that had the biggest impact on the numbers.  While demand dropped below
 the average on May 23rd after 10am, it was consistently above normal throughout 
 the day on both May 16th and June 27.  This makes sense since demand increases
-throughout the day after 10am on Saturdays in general. 
+throughout the day after 10am on Saturdays in general.
+
+## Location Boxplot
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Location_Boxplot}
+ggplot(uber_known.by_loc,
+       aes(x = Borough,
+           y = rides)) +
+  geom_boxplot(aes(color = Borough)) +
+  scale_y_log10(labels = comma,
+                breaks = c(100, 1000, 10000, 100000, 500000)) +
+  scale_color_brewer(type = 'qual',
+                     palette = 6) +
+  ggtitle('Pickups by Location') +
+  ylab('Number of Pickups') +
+  ggsave('graphs/pickups_by_location_boxplot.png', 
+         width = 12, 
+         height = 8, 
+         units = 'in')
+```
+
+The largest variation was in the location data.  Staten Island had very few
+pickups per zone, with most falling in the low 100's.  Manhattan had the most 
+pickups with some zones nearing 500,000.  I used a log scale for the y axis 
+because the data was so disperse.
 
 
 # Bivariate Analysis
@@ -661,7 +710,7 @@ however; because it's often difficult to predict demand without experience.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, Map_Scatter_Plot}
 # Map Scatterplot of New York Pickups
-warnings()
+
 lon_left <- min(taxi_lookup$lon)
 lon_right <- max(taxi_lookup$lon)
 lat_bottom <- min(taxi_lookup$lat)
