@@ -145,7 +145,8 @@ uber <- uber %>%
 
 # Filter known boroughs for location analyses
 uber_known <- uber %>%
-  filter(Borough != 'Unknown' & Borough != 'EWR') # EWR is NJ
+  filter(Borough != 'Unknown' & Borough != 'EWR') %>% # EWR is NJ
+  droplevels()
 
 # Create month tables for quicker execution
 uber_jan <- uber %>%
@@ -303,20 +304,6 @@ summary(uber_sample)
 ```
 
 
-## Tables
-
-```{r}
-# By hour
-
-
-# By day
-table(uber$day)
-```
-
-
-## 
-
-
 ## Pickups by Hour
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, Hourly_Pickups}
@@ -355,6 +342,12 @@ ggplot(uber,
   ggsave('graphs/day_barchart.png')
 ```
 
+```{r}
+# Table of pickups by day
+table(uber$day)
+```
+
+
 Pickups per day followed an expected trend, with demand rising Monday - 
 Friday, then peaking on the weekend.
 
@@ -374,6 +367,11 @@ ggplot(uber,
   xlab('Month') +
   ggsave('graphs/pickups_per_month_barplot.png')
 ```
+
+```{r}
+table(uber$month)
+```
+
 
 Demand over this 6-month span went from a little under 2 million rides in
 January to nearly 3 million in June.
@@ -401,6 +399,13 @@ ggplot(uber_known,
   guides(fill = 'none')
 ```
 
+```{r}
+table(uber_known$Borough)
+```
+
+```{r}
+table(uber$Borough)
+```
 
 
 

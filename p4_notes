@@ -3,9 +3,12 @@ Todo:
   - Zoom in on subsets:
     - Saturday 3pm-11pm
   - Transform for different perspectives
+- Bivariate
   - Add summary stats under (cont x) plots
   - Add table stats to some plots
-
+- Multivariate
+  - Add summary stats under (cont x) plots
+  - Add table stats to some plots
 - Basic descriptive statistics
   - Table
     - hour
