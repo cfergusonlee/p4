@@ -1,15 +1,19 @@
 Todo:
 - Univariate
-  - Zoom in on subsets
+  - Zoom in on subsets:
+    - Saturday 3pm-11pm
   - Transform for different perspectives
-- Overall edits
-  - Remove legend from boxplots
+  - Add summary stats under (cont x) plots
+  - Add table stats to some plots
+
 - Basic descriptive statistics
   - Table
     - hour
     - day
     - Zone
   - Summary(bin by hour and day first)
+- Multivariate
+  - I think they want a scatter matrix for some reason.  Gametime decision.  Look at it first
 - More ideas
   - Study diamond example
   
