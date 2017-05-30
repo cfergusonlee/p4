@@ -110,13 +110,19 @@ uber_sample <- uber_sample %>%
   mutate(Pickup_date = ymd_hms(Pickup_date),
          hour = hour(Pickup_date),
          day = wday(Pickup_date, label = T, abbr = F),
+         day = ordered(day, levels = c('Monday',
+                                       'Tuesday',
+                                       'Wednesday',
+                                       'Thursday',
+                                       'Friday',
+                                       'Saturday',
+                                       'Sunday')),
          month = month(Pickup_date, label = T, abbr = F),
          date = day(Pickup_date),
          Borough = as.factor(Borough),
          Zone = as.factor(Zone),
          locationID = as.factor(locationID)) %>%
   droplevels()
-
 
 
 # Known locations needeed for map
@@ -136,6 +142,13 @@ uber <- uber %>%
   mutate(Pickup_date = ymd_hms(Pickup_date),
          hour = hour(Pickup_date),
          day = wday(Pickup_date, label = T, abbr = F),
+         day = ordered(day, levels = c('Monday',
+                                       'Tuesday',
+                                       'Wednesday',
+                                       'Thursday',
+                                       'Friday',
+                                       'Saturday',
+                                       'Sunday')),
          month = month(Pickup_date, label = T, abbr = F),
          date = day(Pickup_date),
          Borough = as.factor(Borough),
@@ -264,18 +277,18 @@ observation represents a single pickup with the following columns:
 
 Variable | Definition
 ------------------- | --------------------------------------------------
-Dispatching_base_num | The TLC base company code that dispatched the Uber
-Pickup_date | The full date of the pickup in yyyy-mm-dd h:m:s format
-Affiliated_base_num | The TLC base company code of the Uber pickup
-locationID | The pickup location ID of the Uber pickup
-Borough | The New York City Borough where the pickup took place
-Zone | The neighborhood in the New York City Borough where the pickup took place
-lat | The latitude of the pickup Zone
-lon | The longitude of the pickup Zone
-month | The month that the pickup took place
-date | The date (1-31) that the pickup took place
-day | The day (Sunday-Saturday) that the pickup took place
-hour | The hour that the pickup took place
+Dispatching_base_num | TLC base company code that dispatched the Uber
+Pickup_date | Full date of the pickup in yyyy-mm-dd h:m:s format
+Affiliated_base_num | TLC base company code of the Uber pickup
+locationID | Pickup location ID of the Uber pickup
+Borough | New York City Borough where the pickup took place
+Zone | Neighborhood in the New York City Borough where the pickup took place
+lat | Latitude of the pickup Zone
+lon | Longitude of the pickup Zone
+month | Month that the pickup took place
+date | Date (1-31) that the pickup took place
+day | Day (Monday-Sunday) that the pickup took place
+hour | Hour that the pickup took place
 
 I was most interested in how ridership varied over time and location.  I 
 wanted to know how it changed by hour, week, day and month.  I also wanted to
@@ -293,18 +306,17 @@ dim(uber)
 ## Structure
 
 ```{r}
-str(uber_sample)
+str(uber)
 ```
 
 ## Summary
 
 ```{r}
-summary(uber_sample)
-
+summary(uber)
 ```
 
 
-## Pickups by Hour
+## Total Pickups by Hour
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, Hourly_Pickups}
 ggplot(uber,
@@ -313,10 +325,13 @@ ggplot(uber,
                 color = I('Blue')) +
   scale_x_continuous(limits = c(0, 23),
                      breaks = 0:23) +
-  ggtitle('Pickups per Hour') +
+  ggtitle('Total Pickups by Hour') +
   xlab('Time') +
   ylab('Number of Pickups') +
-  ggsave('graphs/hourly_pickups_freqpoly.png')
+  ggsave('graphs/hourly_pickups_freqpoly.png', 
+         width = 10, 
+         height = 6, 
+         units = 'in')
 ```
 
 ```{r}
@@ -327,7 +342,44 @@ The graph above shows the total number of pickups per hour.  There are 3 notable
 spikes at midnight (0), 8am and 7pm.  There is also a small bump around noon for
 lunch.
 
-## Pickups by Day
+## Pickups per Hour
+
+```{r}
+ggplot(uber.by_hour,
+       aes(x = rides)) +
+  geom_histogram(binwidth = 200) +
+  ggtitle('Pickups per Hour Histogram') +
+  xlab('Pickups per Hour') +
+  ylab('Frequency') +
+  ggsave('graphs/pickups_per_hour_histogram.png', 
+         width = 10, 
+         height = 6, 
+         units = 'in')
+```
+
+
+```{r}
+ggplot(uber.by_hour,
+       aes(x = rides)) +
+  geom_histogram() +
+  ggtitle('Pickups per Hour Histogram (log scale x-axis)') +
+  scale_x_log10() +
+  xlab('Pickups per Hour \n (log scale)') +
+  ylab('Frequency') +
+  ggsave('graphs/pickups_per_hour_histogram.png', 
+         width = 10, 
+         height = 6, 
+         units = 'in')
+```
+
+
+
+```{r}
+summary(uber.by_hour$rides)
+```
+
+
+## Total Pickups by Day
 
 ```{r Day_Barchart}
 ggplot(uber,
@@ -335,11 +387,14 @@ ggplot(uber,
   geom_bar(aes(fill = day)) +
   scale_fill_brewer(type = 'seq',
                      palette = 2) +
-  ggtitle('Pickups per Day') +
+  ggtitle('Total Pickups by Day') +
   ylab('Number of Pickups') +
   xlab('Day') +
   guides(fill = 'none') +
-  ggsave('graphs/day_barchart.png')
+  ggsave('graphs/day_barchart.png', 
+         width = 10, 
+         height = 6, 
+         units = 'in')
 ```
 
 ```{r}
@@ -347,9 +402,32 @@ ggplot(uber,
 table(uber$day)
 ```
 
-
 Pickups per day followed an expected trend, with demand rising Monday - 
 Friday, then peaking on the weekend.
+
+## Pickups per Day
+
+```{r}
+ggplot(uber.by_day,
+       aes(x = rides)) +
+  geom_histogram(binwidth = 5000) +
+  scale_x_continuous(labels = comma,
+                     limits = c(0, 150000),
+                     breaks = seq(0, 150000, 25000)) +
+  ggtitle('Pickups per Day Histogram') +
+  xlab('Pickups per Day') +
+  ylab('Frequency') +
+  ggsave('graphs/pickups_per_day_histogram.png', 
+         width = 10, 
+         height = 6, 
+         units = 'in')
+```
+
+
+```{r}
+summary(uber.by_day$rides)
+```
+
 
 ## Pickups by Month
 
@@ -361,17 +439,19 @@ ggplot(uber,
                      palette = 1,
                     direction = 1) +
   scale_y_continuous(labels = comma) +
-  ggtitle('Pickups per Month') +
+  ggtitle('Total Pickups per Month') +
   guides(fill = 'none') +
   ylab('Number of Pickups') +
   xlab('Month') +
-  ggsave('graphs/pickups_per_month_barplot.png')
+  ggsave('graphs/pickups_per_month_barplot.png', 
+         width = 10, 
+         height = 6, 
+         units = 'in')
 ```
 
 ```{r}
 table(uber$month)
 ```
-
 
 Demand over this 6-month span went from a little under 2 million rides in
 January to nearly 3 million in June.
@@ -396,7 +476,11 @@ ggplot(uber_known,
                                 10000000)) +
   ggtitle('Pickups by Borough') +
   ylab('Number of Pickups \n (Log Scale)') +
-  guides(fill = 'none')
+  guides(fill = 'none') +
+  ggsave('graphs/total_pickups_per_borough.png', 
+         width = 10, 
+         height = 6, 
+         units = 'in')
 ```
 
 ```{r}
@@ -511,7 +595,10 @@ ggplot(uber.by_day,
   guides(color = 'none') +
   xlab('Day') +
   ylab('Number of Pickups') +
-  ggsave('graphs/pickups_per_day_boxplot.png')
+  ggsave('graphs/pickups_per_day_boxplot.png', 
+         width = 10, 
+         height = 6, 
+         units = 'in')
 ```
 
 
@@ -1153,7 +1240,7 @@ profitable as a Friday under the right conditions.  I was also surprised to
 learn that demand spiked so much around 6pm and that there really wasn't much of
 a lunch rush Monday-Friday.
 
-People need data to make more informed choices.  When LinkdIn started sharing 
+People need data to make more informed choices.  When LinkedIn started sharing 
 even simple data (who's looked at your profile and profile tips), their 
 popularity skyrocketed.  This seems like a great opportunity to empower more 
 drivers.  Helping drivers perform their jobs more effectively could be a win for
@@ -1161,6 +1248,38 @@ all sides.  If more drivers were more aware of the cyclical patterns in their
 area they would be better equipped to maximize their time and profit.  Drivers 
 would be more satisfied, leading to lower turnover and passengers would be 
 better served by more experienced (and perhaps friendlier) drivers.
+
+There is a lot of data Uber tracks that was not present in this dataset.  This 
+includes but is not limited to:
+
+1. Pickup requests that went unanswered
+2. The amount charged per pickup 
+3. Surge information for each pickup
+4. The number of times drivers ignored requests 
+5. Personal information about passengers and drivers
+6. Passenger and driver rating information for each pickup
+
+Each of the above holds valuable information about driver and passenger 
+behavior.  Analyzing the number of pickup requests that went unanswered could
+help improve Uber's overall efficiency.  For example, there may be time periods
+when there should be more drivers on the road or the opposite, when an area is
+supersaturated and drivers are less likely to find an available passenger.
+This, in conjunction with the surge information for each pickup could help
+unpack how Uber calculates their surge multiplier.  Further analysis could help
+improve overall satisfaction for both passengers and drivers.
+
+Pricing data could shed a lot of information on both passengers and drivers.
+Looking at the amount charged per pickup as well as any available surge 
+information could shed a lot of light on customer behavior.  Do customers avoid
+Uber past a certain surge multiplier?  Are they affected at all by the surge?
+Do drivers flock to surge areas or are they mostly stationary?  Pricing data
+opens up many possibilities for exploration.  We could look at whether it 
+affects trip duration, the number of subsequent trips, or even the differences 
+in price sensitivity between different locations.  In addition, it would be
+interesting to compare passenger ratings for surge trips vs non-surge trips.
+With enough variables, we could even predict future pickup demand.  I'm curious
+how close a machine learning algorith could get to predicting surges or lulls.
+There is a lot we are missing out one here.
 
 The biggest struggle was trying to capture as much information from each plot 
 as efficiently as possible.  There were many graphs I had to throw away because
