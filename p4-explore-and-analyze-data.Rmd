@@ -22,7 +22,7 @@ knitr::opts_chunk$set(warning = FALSE)
 
 
 
-```{r echo = FALSE, message = FALSE, warning = FALSE, packages}
+```{r Packages}
 library(ggplot2)
 library(tidyr)
 library(dplyr)
@@ -43,16 +43,43 @@ library(lubridate)
 library(viridis)
 ```
 
+# Introduction
+
+I chose to investigate an Uber dataset of New York City pickups from January
+through June of 2015. The Taxi & Limousine Commission (TLC) released the data
+after receiving a Freedom of Information Law (FOIL) request from FiveThirtyEight 
+on June 22, 2015. I pulled the data from the FiveThirtyEight github repo found
+[here](https://github.com/fivethirtyeight/uber-tlc-foil-response).  Each 
+observation represents a single pickup with the following columns:
+
+Variable | Definition
+------------------- | --------------------------------------------------
+Dispatching_base_num | TLC base company code that dispatched the Uber
+Pickup_date | Full date of the pickup in yyyy-mm-dd h:m:s format
+Affiliated_base_num | TLC base company code of the Uber pickup
+locationID | Pickup location ID of the Uber pickup
+Borough | New York City Borough where the pickup took place
+Zone | Neighborhood in the New York City Borough where the pickup took place
+lat | Latitude of the pickup Zone
+lon | Longitude of the pickup Zone
+month | Month that the pickup took place
+date | Date (1-31) that the pickup took place
+day | Day (Monday-Sunday) that the pickup took place
+hour | Hour that the pickup took place
+
+I was most interested in how ridership varied over time and location.  I 
+wanted to know how it changed by hour, week, day and month.  I also wanted to
+know what the most popular Boroughs and Zones were.
 
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, Load_the_Data}
+```{r Load_the_Data, echo = TRUE}
 # Read csv's and load taxi lookup data
 setwd('/Users/courtneyfergusonlee/p4')
 uber <- read.csv('data/uber-raw-data-janjune-15.csv')
 taxi_lookup <- read.csv('data/taxi-zone-lookup.csv', stringsAsFactors = F)
 
 # Load from RData file until ready to knit
-load('data/uber.RData', .GlobalEnv)
+# load('data/uber.RData', .GlobalEnv)
 
 # Edit Zones for more accurate location results
 taxi_lookup[17, 3] <- 'Bedford-Stuyvesant'
@@ -97,7 +124,7 @@ taxi_lookup[taxi_lookup.lon_na$LocationID, 5] <- taxi_lookup.lon_na$longitude
 
 
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, Sample_the_Data}
+```{r Sample_the_Data}
 
 # Grab samples to lighten system load and run tests
 set.seed(420)
@@ -127,13 +154,14 @@ uber_sample <- uber_sample %>%
 
 # Known locations needeed for map
 uber_sample_known <- uber_sample %>%
-  filter(Borough != 'Unknown' & Borough != 'EWR') # EWR is NJ
+  filter(Borough != 'Unknown' & Borough != 'EWR') %>% # EWR is NJ
+  droplevels()
 
 ```
 
 
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, Format_the_Data}
+```{r Format_the_Data, echo = TRUE}
 
 # Create Zone, Borough, lat, lon, hour, day, month and date variables
 uber <- uber %>%
@@ -266,59 +294,47 @@ uber_known.by_hour_borough <- uber_known %>%
   ungroup()
 ```
 
-# Introduction
-
-I chose to investigate an Uber dataset of New York City pickups from January
-through June of 2015. The Taxi & Limousine Commission (TLC) released the data
-after receiving a Freedom of Information Law (FOIL) request from FiveThirtyEight 
-on June 22, 2015. I pulled the data from the FiveThirtyEight github repo found
-[here](https://github.com/fivethirtyeight/uber-tlc-foil-response).  Each 
-observation represents a single pickup with the following columns:
-
-Variable | Definition
-------------------- | --------------------------------------------------
-Dispatching_base_num | TLC base company code that dispatched the Uber
-Pickup_date | Full date of the pickup in yyyy-mm-dd h:m:s format
-Affiliated_base_num | TLC base company code of the Uber pickup
-locationID | Pickup location ID of the Uber pickup
-Borough | New York City Borough where the pickup took place
-Zone | Neighborhood in the New York City Borough where the pickup took place
-lat | Latitude of the pickup Zone
-lon | Longitude of the pickup Zone
-month | Month that the pickup took place
-date | Date (1-31) that the pickup took place
-day | Day (Monday-Sunday) that the pickup took place
-hour | Hour that the pickup took place
-
-I was most interested in how ridership varied over time and location.  I 
-wanted to know how it changed by hour, week, day and month.  I also wanted to
-know what the most popular Boroughs and Zones were.
-
 # Univariate Plots Section
 
-## Dimensions
+## Dimensions, Structure and Summary
 
-```{r}
+```{r Dimensions}
 dim(uber)
 ```
 
-
-## Structure
-
-```{r}
+```{r Structure}
 str(uber)
 ```
 
-## Summary
-
-```{r}
+```{r Summary}
 summary(uber)
 ```
 
+The Uber dataset consists of 14 million observations of pickup data spread
+across 12 variables. Originally there were only 4 variables (dispatch base 
+number, pickup date, affiliated base number, and location ID), but I joined that
+with taxi lookup data to get Zone and Borough names for each location ID.  I 
+also wanted to map each location to a set of coordinates so I used Google's API 
+to get the latitude and longitude for each zone.  The Google API limits users to
+2500 queries during each 24 hour period so I had to be strategic when joining 
+the lookup data to the ridership data.
+
+I parsed the month, date, day, and hour from each pickup timestamp using 
+lubridate to get a more granular analysis of patterns over time.  I also binned
+the pickup data by location and time for some of the histograms and boxplots. I
+had a dilema when it came to the taxi lookup dataset because some of the 
+location data points were missing.  It was a small subset (about 6000 
+observations) but I did not want to throw away the data.  Instead I kept all 
+observations for the time period analyses and excluded them from the location 
+analyses.
+
+Since the dataset was so large, I ran most tests on a sample of 100,000 
+randomly selected observations before making the final plots on the population.
+This saved a lot of time since some plots took a couple minutes (each) to run.
 
 ## Total Pickups by Hour
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, Hourly_Pickups}
+```{r Total_Hourly_Pickups_Freqpoly}
 ggplot(uber,
        aes(x = hour)) +
   geom_freqpoly(binwidth = 1,
@@ -334,7 +350,7 @@ ggplot(uber,
          units = 'in')
 ```
 
-```{r}
+```{r Total_Hourly_Pickups_Table}
 table(uber$hour)
 ```
 
@@ -344,7 +360,7 @@ lunch.
 
 ## Pickups per Hour
 
-```{r}
+```{r Pickups_per_Hour_Histogram}
 ggplot(uber.by_hour,
        aes(x = rides)) +
   geom_histogram(binwidth = 200) +
@@ -358,30 +374,34 @@ ggplot(uber.by_hour,
 ```
 
 
-```{r}
+```{r Pickups_per_Hour_Histogram_Log_Scale}
 ggplot(uber.by_hour,
        aes(x = rides)) +
   geom_histogram() +
-  ggtitle('Pickups per Hour Histogram (log scale x-axis)') +
+  ggtitle('Pickups per Hour Histogram') +
+  labs(subtitle = 'Log Scale x-axis') +
   scale_x_log10() +
   xlab('Pickups per Hour \n (log scale)') +
   ylab('Frequency') +
-  ggsave('graphs/pickups_per_hour_histogram.png', 
+  ggsave('graphs/pickups_per_hour_histogram_log_scale.png', 
          width = 10, 
          height = 6, 
          units = 'in')
 ```
 
 
-
-```{r}
+```{r Pickups_per_Hour_Summary}
 summary(uber.by_hour$rides)
 ```
 
+The above graphs show the distribution of pickups per hour.  The shape is
+bimodal with a major peak around 3200 pickups and a minor peak around 1000
+pickups.  I wasn't sure about the minor peak so I used a log scale for the
+x-axis and found that there seems to really be one large peak at 3200.
 
 ## Total Pickups by Day
 
-```{r Day_Barchart}
+```{r Total_Pickups_by_Day_Barchart}
 ggplot(uber,
        aes(x = day)) +
   geom_bar(aes(fill = day)) +
@@ -391,13 +411,13 @@ ggplot(uber,
   ylab('Number of Pickups') +
   xlab('Day') +
   guides(fill = 'none') +
-  ggsave('graphs/day_barchart.png', 
+  ggsave('graphs/total_pickups_by_day_barchart.png', 
          width = 10, 
          height = 6, 
          units = 'in')
 ```
 
-```{r}
+```{r Total_Pickups_by_Day_Table}
 # Table of pickups by day
 table(uber$day)
 ```
@@ -407,7 +427,7 @@ Friday, then peaking on the weekend.
 
 ## Pickups per Day
 
-```{r}
+```{r Pickups_per_Day_Histogram}
 ggplot(uber.by_day,
        aes(x = rides)) +
   geom_histogram(binwidth = 5000) +
@@ -424,14 +444,16 @@ ggplot(uber.by_day,
 ```
 
 
-```{r}
+```{r Pickups_per_Day_Summary}
 summary(uber.by_day$rides)
 ```
 
+The number of pickups per day was normally distributed with a center around
+75,000.  There were a couple outliers at both 25,000 and around 125,000.
 
 ## Pickups by Month
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, Monthly_Pickups}
+```{r Total_Pickups_per_Month_Barchart}
 ggplot(uber,
        aes(x = month)) +
   geom_bar(aes(fill = month)) +
@@ -443,13 +465,13 @@ ggplot(uber,
   guides(fill = 'none') +
   ylab('Number of Pickups') +
   xlab('Month') +
-  ggsave('graphs/pickups_per_month_barplot.png', 
+  ggsave('graphs/total_pickups_per_month_barplot.png', 
          width = 10, 
          height = 6, 
          units = 'in')
 ```
 
-```{r}
+```{r Monthly_Pickups_Table}
 table(uber$month)
 ```
 
@@ -458,7 +480,7 @@ January to nearly 3 million in June.
 
 ## Pickups by Borough
 
-```{r Pickups_by_Borough}
+```{r Pickups_by_Borough_Barchart}
 ggplot(uber_known,
        aes(x = Borough)) +
   geom_bar(aes(fill = Borough)) +
@@ -483,43 +505,26 @@ ggplot(uber_known,
          units = 'in')
 ```
 
-```{r}
+```{r Pickups_by_Borough_Filtered_Table}
 table(uber_known$Borough)
 ```
 
-```{r}
+```{r Pickups_by_Borough_Table}
 table(uber$Borough)
 ```
 
-
+Manhattan had the most pickups by far at around 10,000,000 total, while Staten
+Island had the fewest number of pickups (under 10,000 total).  I transformed
+the axis to better understand the distribution.  Below the graph are the tables
+of pickups in the full and filtered uber datasets.  I filtered the dataset for
+the location plots to exclude pickups with missing location data and pickups
+originating from New Jersey (EWR).
 
 # Univariate Analysis
 
-The Uber dataset consists of 14 million observations of pickup data spread
-across 12 variables. Originally there were only 4 variables (dispatch base 
-number, pickup date, affiliated base number, and location ID), but I joined that
-with taxi lookup data to get Zone and Borough names for each location ID.  I 
-also wanted to map each location to a set of coordinates so I used Google's API 
-to get the latitude and longitude for each zone.  The Google API limits users to
-2500 queries during each 24 hour period so I had to be strategic when joining 
-the lookup data to the ridership data.
-
-I parsed the month, date, day, and hour from each pickup timestamp using 
-lubridate to get a more granular analysis of patterns over time.  I also binned
-the pickup data by location and time for some of the histograms and boxplots. I
-had a dilema when it came to the taxi lookup dataset because some of the 
-location data points were missing.  It was a small subset (about 6000 
-observations) but I did not want to throw away the data.  Instead I kept all 
-observations for the time period analyses and excluded them from the location 
-analyses.
-
-Since the dataset was so large, I ran most tests on a sample of 100,000 
-randomly selected observations before making the final plots on the population.
-This saved a lot of time since some plots took a couple minutes (each) to run.
-
-The most unusual distributions came from the location data.  Some boroughs 
+The most diverse distributions came from the location data.  Some boroughs 
 only had a few hundred pickups while others were in the 10's of thousands and 
-even hundreds of thousands.  This was unusual because as I saw later, these 
+even hundreds of thousands.  This was interesting because as I saw later, these 
 patterns did not change over the course of the week.  Manhattan was the busiest 
 location during the week and on the weekends.  
 
@@ -543,7 +548,7 @@ documentation.
 
 ## Hourly Pickups
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, Hourly_by_Day}
+```{r Hourly_by_Day_Histogram}
 ggplot(uber,
        aes(x = hour)) +
   geom_histogram(binwidth = 1,
@@ -582,7 +587,7 @@ extends through this entire time period while Sunday demand tapers off around
 
 ## Daily Pickups
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, Daily_Pickups_Boxplot}
+```{r Pickups_per_Day_Boxplot}
 ggplot(uber.by_day,
        aes(x = day,
            y = rides)) +
@@ -601,11 +606,16 @@ ggplot(uber.by_day,
          units = 'in')
 ```
 
+```{r Pickups_per_Day_by_Day_Summary}
+by(uber.by_day$rides, uber.by_day$day, summary)
+```
 
+Tuesday, Friday and Saturday had the largest variation of pickups per day while
+Wednesday had the smallest.
 
 ## Monthly Pickups Colored by Day
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, Monthly_Pickups_Colored_by_Day}
+```{r Monthly_Pickups_Colored_by_Day_Histogram}
 # Number of pickups over time colored by day
 ggplot(uber,
        aes(x = date)) +
@@ -634,7 +644,7 @@ weekend. It is unclear what exactly caused the increase in demand, but it would
 be interesting to examine year-over-year Uber data to see how rider behavior
 changes from winter to spring.
 
-Weekly patterns were very interesting.  Each week saw the same (relative) 
+Weekly patterns were also very interesting.  Each week saw the same (relative) 
 pattern.  Monday was usually the least popular day, with demand rising steadily
 before climaxing on Saturday. Interestingly, Sunday was a more popular day than
 Monday, which could have been partly due to the extra runoff when Saturday
@@ -655,7 +665,7 @@ June in more depth.
 
 ## May and June In-Depth
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, May_June}
+```{r May_June_Pickups_by_Date_Freqpoly}
 # Create histogram of pickups, faceted by date
 # May
 ggplot(uber_may,
@@ -734,7 +744,7 @@ expected peaks from 6pm - 11pm simply did not show up on May 22 or May 23.
 
 ## May and June Outliers
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, May_June_Outliers}
+```{r May_June_Outliers}
 # Look at percent change for May 16, May 24 and June 25 vs typical Saturdays
 # x-axis: hours
 # y-axis: percent change from baseline
@@ -798,7 +808,7 @@ throughout the day after 10am on Saturdays in general.
 
 ## Location Boxplot
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, Location_Boxplot}
+```{r Location_Boxplot}
 ggplot(uber_known.by_loc,
        aes(x = Borough,
            y = rides)) +
@@ -816,10 +826,20 @@ ggplot(uber_known.by_loc,
          units = 'in')
 ```
 
-The largest variation was in the location data.  Staten Island had very few
-pickups per zone, with most falling in the low 100's.  Manhattan had the most 
-pickups with some zones nearing 500,000.  I used a log scale for the y axis 
-because the data was so disperse.
+```{r Location_Summary}
+by(uber_known.by_loc$rides, uber_known.by_loc$Borough, summary)
+```
+
+There was a lot of variation in the location data. I binned the data by Zone to 
+create the boxplot. Overall, Staten Island had very few pickups per zone, with 
+most falling in the low 100's. Manhattan had the most pickups with some zones 
+nearing 500,000. What made some of this data unusual was the distribution of 
+pickups within each Borough. For instance, Manhattan is such a busy area I 
+expected huge numbers for all of its zones, but some had as little as 12 
+pickups. This makes me wonder how Uber chose to agregate their location data. 
+Maybe there are some neighborhoods or remote areas of Manhattan that don't get 
+much foot traffic at all. I used a log scale for the y axis because the data was
+so disperse.
 
 
 # Bivariate Analysis
@@ -852,7 +872,7 @@ however; because it's often difficult to predict demand without experience.
 
 ## Map Scatter Plot
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, Map_Scatter_Plot}
+```{r Map_Scatter_Plot}
 # Map Scatterplot of New York Pickups
 
 lon_left <- min(taxi_lookup$lon)
@@ -907,7 +927,7 @@ white (toner) version to help the data points stand out more.
 
 ## Heatmap by month and date
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, Month_Date_Heatmap}
+```{r Month_Date_Heatmap}
 ggplot(aes(y = date, 
            x = month),
        data = uber.by_day) +
@@ -929,7 +949,6 @@ ggplot(aes(y = date,
 
 
 ```{r Ride_Statistics_By_Month}
-# Ride statistics by month
 by(uber.by_day$rides, uber.by_day$month, summary)
 ```
 
@@ -943,7 +962,7 @@ ones were red.
 
 ## Pickups per hour by Day Scatterplots
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, Pickups_by_Hour_Day_Colored}
+```{r Pickups_by_Hour_Day_Colored}
 # Number of rides per hour scatterplot, color by day, with smooth mean line
 ggplot(uber.by_hour,
        aes(x = hour,
@@ -988,16 +1007,22 @@ ggplot(uber.by_hour,
          units = 'in')
 ```
 
+```{r Pickups_by_Hour_Day_Summary}
+by(uber.by_hour$rides, uber.by_hour$day, summary)
+```
+
 The above graphs show the distribution of rides per hour for all dates in the
 6-month time period.  The top graph is colored by day, which highlights how 
 demand rose along a gradient from Sunday (yellow) through Saturday (dark red).
 I threw in a smoothing curve to show the (mean) average demand for all days. The
 bottom graph helps distinguish the two types of demand curves for Monday -
-Friday vs Saturday and Sunday.
+Friday vs Saturday and Sunday.  Finally, the table shows the distribution of
+rides per hour broken down by day.  Saturday had the largest range of pickups
+per hour while Monday had the smallest.
 
 ## Pickups by Hour 2D Density Plot
 
-```{r}
+```{r Pickups_by_Hour_2D_Density_Plot}
 ggplot(uber.by_hour,
        aes(x = hour,
            y = rides)) +
@@ -1011,9 +1036,17 @@ ggplot(uber.by_hour,
 
 ```
 
+The 2D density plot allows us to see at a glance the distribution of rides per
+hour for all days.  I used the viridis package to color the points.  The black
+regions show regions of lower density while the green and yellow regions show
+higher density.  We can start to see at least two demand curves emerge.  One 
+starts lower at midnight and has two distinct peaks while the latter starts a 
+bit higher and seems to have one prominent peak. Curiously, both curves seem to 
+intersect at around 4am.
+
 ## Weekday vs Weekend Pickups in Each Borough
 
-```{r}
+```{r Weekday_vs_Weekend_Pickups_Density_Plot}
 # Monday - Friday
 ggplot(subset(uber_known, 
               day == 'Monday'
@@ -1071,14 +1104,32 @@ ggplot(subset(uber_known, day =='Sunday'),
          units = 'in')
 ```
 
+As discussed in the previous section, there seems to be more than one demand 
+curve for each day.  I decided to try to tease the patterns apart.  What I found
+pointed to not two, but 3 distinct demand curves.  Each density plot is broken
+down by borough.  Most boroughs followed roughly the same trend, although Staten
+Island was consistently unique.  This may have been due to the lower number
+of overall rides (Under 10,000 total vs 100,000-10,000,000 for other boroughs). 
+
+The Monday-Friday plot shows 3 peaks of increasing size starting at midnight.
+Although the second (8am) peak was pretty evenly distributed across the 
+boroughs, the final peak showed a large amount of variance.  It seems Manhattan
+passengers went out a lot in the evening while Bronx passengers seemed to be 
+more like homebodies, with a less pronounced evening surge.
+
+The weekend told a different story for the 5 boroughs.  Saturday consisted of 
+two peaks of increasing size in the early morning and in the evening.  Demand 
+seemed to drop sharply after the first peak and into the wee hours of the 
+morning before climbing slowly throughout the day.  Sunday was almost the inverse of Saturday.  The major peak occurred in the early morning while the minor peak 
+occurred in the afternoon / evening.
 
 # Multivariate Analysis
 
-These 4 graphs complement each other well to paint a clear picture of rider
+These graphs complement each other well to paint a clear picture of rider
 habits.  The map scatterplot highlights the most popular locations while the 
 colored pickups by hour scatterplots show how rider behavior changes over time.
-I think that Uber should share more of this type of data with drivers.  It takes
-a lot of the guesswork out of driving and would eliminate a lot of regret over 
+I think Uber should share more of this type of data with drivers.  It takes a 
+lot of the guesswork out of driving and would eliminate a lot of regret over 
 missed opportunities.  Having a better understanding of rider behavior would
 help drivers plan a more concrete schedule.
 
@@ -1095,7 +1146,7 @@ results were inconclusive.
 
 ### New York City Map Scatterplot
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, Plot_One}
+```{r Plot_One}
 # Map Scatterplot of New York Pickups
 
 lon_left <- min(taxi_lookup$lon)
@@ -1159,7 +1210,7 @@ from the Manhattan epicenter.
 
 ### Monthly Pickups Colored by Day
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, Plot_Two}
+```{r Plot_Two}
 # Number of pickups over time colored by day
 ggplot(uber,
        aes(x = date)) +
@@ -1190,7 +1241,7 @@ notation to decimal notation to make them more human-readable.
 
 ### Pickups Per Hour with Daily Median Lines
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, Plot_Three}
+```{r Plot_Three}
 # Number of rides per hour scatterplot with a line for every day (Sun - Sat)
 ggplot(uber.by_hour,
        aes(x = hour,
@@ -1218,27 +1269,27 @@ ggplot(uber.by_hour,
 ### Description
 
 The Pickups by Hour with Daily Median graph was interesting because it showed 
-key differences between weekdays and weekends.  There are two distinct demand 
-curves at play here.  Saturday and Sunday ridership decreased from midnight to
-6am, then steadily rose throughout the rest of the day.  Demand on these days
-also started higher at midnight because people usually go out more on Friday and 
-Saturday nights.  Monday through Friday demand decreased from midnight to 3am,
-then then abruptly rose as people started waking up to get to work.  It was 
-interesting to see how tight and consistent the 8am rush was, as opposed to 
-the 6pm rush when some people were going home and some were heading to the bar.
+key differences between weekdays and weekends.  There are at least two distinct 
+demand curves at play here.  Saturday and Sunday ridership decreased from 
+midnight to 6am, then steadily rose throughout the rest of the day.  Demand on 
+these days also started higher at midnight because people usually go out more on
+Friday and Saturday nights.  Monday through Friday demand decreased from 
+midnight to 3am, then then abruptly rose as people started waking up to get to 
+work.  It was interesting to see how tight and consistent the 8am rush was, as 
+opposed to the 6pm rush when some passengers went home while others headed to 
+the bar.
 
 ------
 
 # Reflection
 
 This was an eye-opening project for me.  As a former Uber driver I was curious 
-to see how demand changed over time and how it varied by location.  Being in the
-right place at the right time can be the difference between a $2000 week and a 
-$200 one.  It was fun testing my intuitions against the data even when I was 
-wrong. I had no idea that a Thursday or even a Wednesday could be nearly as 
-profitable as a Friday under the right conditions.  I was also surprised to 
-learn that demand spiked so much around 6pm and that there really wasn't much of
-a lunch rush Monday-Friday.
+to see how demand changed over time and varied by location.  Being in the right 
+place at the right time can be the difference between a $2000 week and a $200 
+one.  It was fun testing my intuitions against the data even when I was wrong. I
+had no idea that a Thursday or even a Wednesday could be nearly as profitable as
+a Friday under the right conditions.  I was also surprised to learn that demand
+spiked so much around 6pm and that there really wasn't much of a lunch rush Monday-Friday.
 
 People need data to make more informed choices.  When LinkedIn started sharing 
 even simple data (who's looked at your profile and profile tips), their 
@@ -1270,16 +1321,16 @@ improve overall satisfaction for both passengers and drivers.
 
 Pricing data could shed a lot of information on both passengers and drivers.
 Looking at the amount charged per pickup as well as any available surge 
-information could shed a lot of light on customer behavior.  Do customers avoid
-Uber past a certain surge multiplier?  Are they affected at all by the surge?
-Do drivers flock to surge areas or are they mostly stationary?  Pricing data
-opens up many possibilities for exploration.  We could look at whether it 
-affects trip duration, the number of subsequent trips, or even the differences 
-in price sensitivity between different locations.  In addition, it would be
-interesting to compare passenger ratings for surge trips vs non-surge trips.
-With enough variables, we could even predict future pickup demand.  I'm curious
-how close a machine learning algorith could get to predicting surges or lulls.
-There is a lot we are missing out one here.
+information could reveal hidden trends.  Do customers avoid Uber past a certain 
+surge multiplier?  Are they affected at all by the surge? Do drivers flock to 
+surge areas or are they mostly stationary?  Pricing data opens up many 
+possibilities for exploration.  We could look at whether it affects trip 
+duration, the number of subsequent trips, or even the differences in price 
+sensitivity between different locations.  In addition, it would be interesting 
+to compare passenger ratings for surge trips vs non-surge trips. With enough 
+variables, we could even predict future pickup demand.  I'm curious how close a 
+machine learning algorith could get to predicting surges or lulls. There is a 
+lot we are missing out on here.
 
 The biggest struggle was trying to capture as much information from each plot 
 as efficiently as possible.  There were many graphs I had to throw away because
@@ -1297,7 +1348,7 @@ projects.
 The R Journal, 5(1), 144-161. URL
   http://journal.r-project.org/archive/2013-1/kahle-wickham.pdf
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, Save_Taxi_Data}
+```{r Save_Taxi_Data}
 save(taxi_lookup, 
      file = file.path('/Users/courtneyfergusonlee/p4/uber.RData'))
 ```
