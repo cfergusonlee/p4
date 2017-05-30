@@ -32,7 +32,7 @@ I was most interested in how ridership varied over time and location.  I
 wanted to know how it changed by hour, week, day and month.  I also wanted to
 know what the most popular Boroughs and Zones were.
 
-```{r Load_the_Data, echo = TRUE}
+```r
 # Read csv's and load taxi lookup data
 setwd('/Users/courtneyfergusonlee/p4')
 uber <- read.csv('data/uber-raw-data-janjune-15.csv')
