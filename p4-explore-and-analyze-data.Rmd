@@ -1,7 +1,7 @@
 ---
 title: "Exploratory Data Analysis of Uber Pickups"
 author: "By Courtney Ferguson Lee"
-date: "May 9, 2017"
+date: "May 30, 2017"
 output: html_document
 ---
 
@@ -15,9 +15,9 @@ td {  /* Table  */
 </style>
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
-knitr::opts_chunk$set(message = FALSE)
-knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(echo = FALSE,
+                      message = FALSE,
+                      warning = FALSE)
 ```
 
 
@@ -45,10 +45,10 @@ library(viridis)
 
 # Introduction
 
-I chose to investigate an Uber dataset of New York City pickups from January
-through June of 2015. The Taxi & Limousine Commission (TLC) released the data
-after receiving a Freedom of Information Law (FOIL) request from FiveThirtyEight 
-on June 22, 2015. I pulled the data from the FiveThirtyEight github repo found
+I investigated an Uber dataset of New York City pickups from January through 
+June of 2015. The Taxi & Limousine Commission (TLC) released the data after 
+receiving a Freedom of Information Law (FOIL) request from FiveThirtyEight on 
+June 22, 2015. I pulled the data from the FiveThirtyEight github repo found
 [here](https://github.com/fivethirtyeight/uber-tlc-foil-response).  Each 
 observation represents a single pickup with the following columns:
 
@@ -489,13 +489,7 @@ ggplot(uber_known,
                     palette = 4) +
   scale_y_continuous(trans = 'log',
                      labels = comma,
-                     breaks = c(10,
-                                100,
-                                1000,
-                                10000,
-                                100000,
-                                1000000,
-                                10000000)) +
+                     breaks = 1^seq(1, 7)) +
   ggtitle('Pickups by Borough') +
   ylab('Number of Pickups \n (Log Scale)') +
   guides(fill = 'none') +
@@ -545,6 +539,34 @@ feel a certain level of comfort when I see his name in a package's
 documentation.
 
 # Bivariate Plots
+
+## Pickups by Hour 2D Density Plot
+
+```{r Pickups_by_Hour_2D_Density_Plot}
+ggplot(uber.by_hour,
+       aes(x = hour,
+           y = rides)) +
+  geom_bin2d(bins = 23) +
+  scale_x_continuous(breaks = 0:23) +
+  scale_fill_viridis() +
+  ggtitle('Pickups per Hour 2D Density Plot') +
+  labs(fill = 'Count') +
+  ylab('Number of Pickups') +
+  xlab('Time') +
+  ggsave('graphs/pickups_per_hour_2d_density.png', 
+         width = 10, 
+         height = 6, 
+         units = 'in')
+
+```
+
+The 2D density plot allows us to see at a glance the distribution of rides per
+hour for all days.  I used the viridis package to color the points.  The black
+regions show regions of lower density while the green and yellow regions show
+higher density.  We can start to see at least two demand curves emerge.  One 
+starts lower at midnight and has two distinct peaks while the latter starts a 
+bit higher and seems to have one prominent peak. Curiously, both curves seem to 
+intersect at around 4am.
 
 ## Hourly Pickups
 
@@ -623,7 +645,7 @@ ggplot(uber,
                 aes(fill = day)) +
   scale_x_continuous(breaks = seq(7, 28, 7)) +
   scale_y_continuous(labels = comma) +
-  scale_fill_brewer(type = 'seq', palette = 1) +
+  scale_fill_brewer(type = 'seq', palette = 18) +
   ggtitle('Monthly Pickups Colored by Day') +
   labs(fill = 'Day') +
   xlab('Date') +
@@ -753,13 +775,13 @@ p1 <- ggplot(may_16.by_hour,
            y = rides / ave_rides)) +
   geom_line(aes(color = I('blue'))) +
   geom_hline(linetype = 2, alpha = .3, yintercept = 1) +
-  scale_x_continuous(breaks = seq(0,24,1)) +
   scale_y_continuous(labels = scales::percent,
                      limits = c(.6,1.8),
                      breaks = seq(.6,1.8,.2)) +
   ggtitle('Saturday, May 16 Pickups') +
-  ylab('Pickups (% Versus Ave Saturday)') +
-  xlab('Time')
+  ylab('Pickups \n (% Versus Ave Saturday)') +
+  xlab('Time') +
+  theme(axis.text.x = element_blank())
 
 p2 <- ggplot(may_23.by_hour,
        aes(x = hour,
@@ -771,7 +793,7 @@ p2 <- ggplot(may_23.by_hour,
                      limits = c(.6,1.8),
                      breaks = seq(.6,1.8,.2)) +
   ggtitle('Saturday, May 23 Pickups') +
-  ylab('Pickups (% Versus Ave Saturday)') +
+  ylab('Pickups \n (% Versus Ave Saturday)') +
   xlab('Time')
 
 p3 <- ggplot(june_27.by_hour,
@@ -779,13 +801,13 @@ p3 <- ggplot(june_27.by_hour,
            y = rides / ave_rides)) +
   geom_line(aes(color = I('red'))) +
   geom_hline(linetype = 2, alpha = .3, yintercept = 1) +
-  scale_x_continuous(breaks = seq(0,24,1)) +
   scale_y_continuous(labels = scales::percent,
                      limits = c(.6,1.8),
                      breaks = seq(.6,1.8,.2)) +
   ggtitle('Saturday, June 27 Pickups') +
-  ylab('Pickups (% Versus Ave Saturday)') +
-  xlab('Time')
+  ylab('Pickups \n (% Versus Ave Saturday)') +
+  xlab('Time') +
+  theme(axis.text.x = element_blank())
 
 grid.arrange(p1, p2, p3, ncol = 1)
 
@@ -1019,30 +1041,6 @@ bottom graph helps distinguish the two types of demand curves for Monday -
 Friday vs Saturday and Sunday.  Finally, the table shows the distribution of
 rides per hour broken down by day.  Saturday had the largest range of pickups
 per hour while Monday had the smallest.
-
-## Pickups by Hour 2D Density Plot
-
-```{r Pickups_by_Hour_2D_Density_Plot}
-ggplot(uber.by_hour,
-       aes(x = hour,
-           y = rides)) +
-  geom_bin2d(bins = 23) +
-  scale_x_continuous(breaks = 0:23) +
-  scale_fill_viridis() +
-  ggtitle('Pickups per Hour 2D Density Plot') +
-  labs(fill = 'Count') +
-  ylab('Number of Pickups') +
-  xlab('Time')
-
-```
-
-The 2D density plot allows us to see at a glance the distribution of rides per
-hour for all days.  I used the viridis package to color the points.  The black
-regions show regions of lower density while the green and yellow regions show
-higher density.  We can start to see at least two demand curves emerge.  One 
-starts lower at midnight and has two distinct peaks while the latter starts a 
-bit higher and seems to have one prominent peak. Curiously, both curves seem to 
-intersect at around 4am.
 
 ## Weekday vs Weekend Pickups in Each Borough
 
