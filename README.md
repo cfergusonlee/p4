@@ -1,4 +1,4 @@
-# Review and Analyze Uber Pickup Data
+# Exploratory Analysis of Uber Pickup Data in R
 
 ![Uber Logo](https://github.com/spacecadet84/p4/blob/master/photos/uber-logo.jpg "Uber Logo")
 
