@@ -1,4 +1,6 @@
-# Review and Analyze Uber Pickup Data
+# Exploratory Analysis of Uber Pickup Data in R
+
+![Uber Logo](https://github.com/spacecadet84/p4/blob/master/photos/uber-logo.jpg "Uber Logo")
 
 This project explores the variables, structure, patterns, oddities, and underlying relationships of New York City Uber pickups from January through June of 2015.  The Taxi & Limousine Commission (TLC) released the data after receiving a Freedom of Information Law (FOIL) request from FiveThirtyEight on June 22, 2015. I pulled the data from the FiveThirtyEight github repo found [here](https://github.com/fivethirtyeight/uber-tlc-foil-response).  Each observation represents a single pickup with the following columns:
 
